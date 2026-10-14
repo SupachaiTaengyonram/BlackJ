@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Royal Monte Carlo Blackjack — Cryptographic Casino Table</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --felt-light: #0f5c34;
+      --felt-mid: #0a4225;
+      --felt-dark: #052414;
+      --gold-light: #f9e29c;
+      --gold-mid: #d4af37;
+      --gold-dark: #99731c;
+      --card-width: 96px;
+      --card-height: 136px;
+    }
+
+    @media (max-width: 640px) {
+      :root {
+        --card-width: 74px;
+        --card-height: 105px;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #070b09;
+      color: #f8fafc;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .font-serif-casino {
+      font-family: 'Cinzel', serif;
+    }
+
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Casino Table Felt & Rail Styling */
+    .casino-rail {
+      background: linear-gradient(145deg, #2d1810 0%, #1a0d08 50%, #0f0704 100%);
+      box-shadow:
+        inset 0 2px 6px rgba(255, 255, 255, 0.12),
+        inset 0 -6px 16px rgba(0, 0, 0, 0.85),
+        0 20px 50px rgba(0, 0, 0, 0.9);
+      border: 3px solid #4a2c1d;
+    }
+
+    .casino-felt {
+      background:
+        radial-gradient(ellipse at 50% 35%, rgba(22, 117, 66, 0.92) 0%, rgba(10, 68, 38, 0.96) 55%, rgba(4, 34, 18, 1) 100%);
+      box-shadow:
+        inset 0 0 70px rgba(0, 0, 0, 0.75),
+        inset 0 0 18px rgba(0, 0, 0, 0.9);
+      border: 2px solid rgba(212, 175, 55, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Subtle noise weave pattern via CSS radial dots */
+    .casino-felt::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
+      background-size: 6px 6px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 3D Playing Card Container */
+    .playing-card {
+      width: var(--card-width);
+      height: var(--card-height);
+      perspective: 1000px;
+      position: relative;
+      flex-shrink: 0;
+      transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), margin 0.3s ease;
+      transform-style: preserve-3d;
+      z-index: 10;
+    }
+
+    .playing-card:not(:first-child) {
+      margin-left: -26px;
+    }
+
+    @media (max-width: 640px) {
+      .playing-card:not(:first-child) {
+        margin-left: -22px;
+      }
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.48s cubic-bezier(0.34, 1.56, 0.64, 1);
+      border-radius: 9px;
+      box-shadow: -4px 6px 14px rgba(0, 0, 0, 0.55);
+    }
+
+    .card-inner.is-flipped {
+      transform: rotateY(180deg);
+    }
+
+    /* Card Front and Back Faces */
+    .card-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 9px;
+      overflow: hidden;
+    }
+
+    /* Face Up Side (rotated 180deg so unflipped is back of card) */
+    .card-front {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 65%, #eef2f6 100%);
+      border: 1.5px solid #cbd5e1;
+      transform: rotateY(180deg);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 6px;
+    }
+
+    /* Luxury Casino Back Side */
+    .card-back {
+      background: #7f1d1d;
+      border: 4px solid #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 0 1.5px #d4af37;
+    }
+
+    /* Double-down sideways card */
+    .playing-card.doubled-card {
+      transform: rotate(-90deg) translateY(-8px);
+      margin-left: -10px;
+    }
+
+    /* Betting Circle Pulse */
+    .betting-circle-ring {
+      transition: all 0.3s ease;
+    }
+
+    .betting-circle-ring.active-bet-target {
+      filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.65));
+    }
+
+    /* 3D Stacked Chip inside Betting Circle */
+    .chip-stack-item {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.65));
+      pointer-events: none;
+    }
+
+    /* Rack Chip Button Hover Effects */
+    .rack-chip-btn {
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+      filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6));
+    }
+
+    .rack-chip-btn:hover:not(:disabled) {
+      transform: translateY(-6px) scale(1.06);
+      filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.75)) brightness(1.08);
+    }
+
+    .rack-chip-btn:active:not(:disabled) {
+      transform: translateY(-2px) scale(0.97);
+    }
+
+    .rack-chip-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+    }
+
+    /* Flying Clone Elements (Cards & Chips) */
+    .flying-element {
+      position: fixed;
+      pointer-events: none;
+      z-index: 100;
+      transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+    }
+
+    /* Riffle Shuffle Animation Cards */
+    @keyframes riffleLeft {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      30% { transform: translate(-75px, -10px) rotate(-12deg); }
+      60% { transform: translate(-18px, 6px) rotate(-4deg); }
+      85% { transform: translate(0, 0) rotate(0deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+
+    @keyframes riffleRight {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      30% { transform: translate(75px, -10px) rotate(12deg); }
+      60% { transform: translate(18px, 6px) rotate(4deg); }
+      85% { transform: translate(0, 0) rotate(0deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+
+    .shuffle-card-left {
+      animation: riffleLeft 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .shuffle-card-right {
+      animation: riffleRight 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    /* Active Split Hand Highlight */
+    .hand-box {
+      transition: all 0.3s ease;
+      border: 1.5px solid transparent;
+    }
+
+    .hand-box.active-turn-hand {
+      background: radial-gradient(circle at center, rgba(212, 175, 55, 0.16) 0%, rgba(212, 175, 55, 0.02) 70%);
+      border-color: rgba(212, 175, 55, 0.55);
+      box-shadow: 0 0 24px rgba(212, 175, 55, 0.2);
+    }
+
+    /* Custom Casino Buttons */
+    .btn-gold {
+      background: linear-gradient(180deg, #f3d27a 0%, #d4af37 50%, #aa821c 100%);
+      color: #111827;
+      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+    }
+
+    .btn-gold:hover:not(:disabled) {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    .btn-gold:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn-action {
+      transition: all 0.18s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-action:hover:not(:disabled) {
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+    }
+
+    .btn-action:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-action:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+  </style>
+</head>
+<body class="selection:bg-amber-500 selection:text-black">
+
+  <!-- TOP NAVIGATION & ACTION HEADER -->
+  <header class="w-full bg-zinc-950/95 border-b border-amber-500/25 px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 z-30 shadow-lg">
+    <!-- Brand Title -->
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-300 via-amber-500 to-amber-700 p-0.5 shadow-md flex items-center justify-center">
+        <div class="w-full h-full bg-zinc-950 rounded-[6px] flex items-center justify-center">
+          <svg class="w-5 h-5 text-amber-400" viewBox="0 0 32 32" fill="currentColor">
+            <path d="M16 2C10.5 9.5 4 14.2 4 20.2C4 24.4 7.3 27 11 27C13.2 27 14.8 25.9 15.6 24.6L13.2 30H18.8L16.4 24.6C17.2 25.9 18.8 27 21 27C24.7 27 28 24.4 28 20.2C28 14.2 21.5 9.5 16 2Z"/>
+          </svg>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-serif-casino text-sm sm:text-lg font-bold tracking-wider text-amber-300">ROYAL MONTE CARLO</h1>
+          <button id="btn-rng-info" type="button" class="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-950/90 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-900/80 transition cursor-pointer" title="View Cryptographic Shuffle Proof">
+            <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            <span>CSPRNG Fair Shoe</span>
+          </button>
+        </div>
+        <p class="text-[11px] text-zinc-400 hidden sm:block">6-Deck Cryptographic Fisher-Yates Blackjack</p>
+      </div>
+    </div>
+
+    <!-- Header Controls & Download Button -->
+    <div class="flex items-center gap-2">
+      <!-- Manual Shuffle Button -->
+      <button id="btn-shuffle-deck" type="button" class="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed" title="Riffle Shuffle Shoe">
+        <svg class="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+        </svg>
+        <span class="hidden sm:inline">Shuffle Shoe</span>
+      </button>
+
+      <!-- Reset Bankroll Button -->
+      <button id="btn-reset-bankroll" type="button" class="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed" title="Reset Bankroll to $2,500">
+        <svg class="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        <span class="hidden sm:inline">Reset Funds</span>
+      </button>
+
+      <!-- Sound Toggle Button -->
+      <button id="btn-sound-toggle" type="button" class="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 transition" title="Toggle Casino Audio">
+        <svg id="icon-sound-on" class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+        </svg>
+        <svg id="icon-sound-off" class="w-4 h-4 text-zinc-500 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/>
+        </svg>
+      </button>
+
+      <!-- Download index.html Button -->
+      <button id="btn-download-html" type="button" class="px-3 py-1.5 rounded-lg btn-gold font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer">
+        <svg class="w-4 h-4 text-zinc-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+        <span>Download index.html</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CASINO TABLE CONTAINER -->
+  <main class="flex-1 flex flex-col items-center justify-between p-2 sm:p-4 max-w-6xl w-full mx-auto gap-2.5">
+
+    <!-- Felt Table with Wood Rail -->
+    <div class="casino-rail w-full flex-1 rounded-[28px] sm:rounded-[44px] p-2 sm:p-4 flex flex-col min-h-[470px] sm:min-h-[540px] relative">
+      <div id="casino-table-felt" class="casino-felt w-full flex-1 rounded-[22px] sm:rounded-[36px] flex flex-col justify-between p-3 sm:p-6 relative">
+
+        <!-- TABLE FELT PRINTED SVG MARKINGS -->
+        <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <!-- Curved paths for traditional casino felt lettering -->
+            <path id="arc-blackjack" d="M 210,210 A 340,190 0 0,0 790,210" />
+            <path id="arc-dealer-rules" d="M 175,248 A 380,215 0 0,0 825,248" />
+            <path id="arc-insurance" d="M 250,285 A 310,175 0 0,0 750,285" />
+          </defs>
+
+          <!-- Outer decorative golden table boundary -->
+          <rect x="24" y="20" width="952" height="580" rx="34" fill="none" stroke="rgba(212,175,55,0.16)" stroke-width="2" />
+          <rect x="32" y="28" width="936" height="564" rx="28" fill="none" stroke="rgba(212,175,55,0.08)" stroke-width="1" stroke-dasharray="8 6" />
+
+          <!-- Decorative Insurance Ribbon Arc -->
+          <path d="M 210,262 A 345,195 0 0,0 790,262" fill="none" stroke="rgba(212,175,55,0.18)" stroke-width="26" stroke-linecap="round" />
+          <path d="M 210,262 A 345,195 0 0,0 790,262" fill="none" stroke="rgba(212,175,55,0.35)" stroke-width="1.5" stroke-dasharray="4 4" />
+
+          <!-- Curved Text Markings -->
+          <text fill="rgba(249, 226, 156, 0.72)" font-family="Cinzel, serif" font-size="22" font-weight="800" letter-spacing="5">
+            <textPath href="#arc-blackjack" startOffset="50%" text-anchor="middle">BLACKJACK PAYS 3 TO 2</textPath>
+          </text>
+
+          <text fill="rgba(255, 255, 255, 0.42)" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" letter-spacing="2.6">
+            <textPath href="#arc-dealer-rules" startOffset="50%" text-anchor="middle">DEALER MUST STAND ON ALL 17s AND DRAW TO 16</textPath>
+          </text>
+
+          <text fill="rgba(249, 226, 156, 0.65)" font-family="Cinzel, serif" font-size="13" font-weight="700" letter-spacing="4">
+            <textPath href="#arc-insurance" startOffset="50%" text-anchor="middle">INSURANCE PAYS 2 TO 1</textPath>
+          </text>
+
+          <!-- Center Table Emblem Watermark -->
+          <g transform="translate(500, 155)" opacity="0.14">
+            <polygon points="0,-32 28,0 0,32 -28,0" fill="none" stroke="#d4af37" stroke-width="2"/>
+            <polygon points="0,-22 19,0 0,22 -19,0" fill="#d4af37"/>
+          </g>
+        </svg>
+
+        <!-- TOP ROW: DISCARD TRAY (LEFT) + DEALER HAND (CENTER) + CARD SHOE (RIGHT) -->
+        <div class="relative z-10 grid grid-cols-12 items-start gap-2">
+
+          <!-- LEFT: VISUAL DISCARD TRAY -->
+          <div class="col-span-3 sm:col-span-3 flex flex-col items-start">
+            <div id="discard-tray-anchor" class="relative w-16 h-24 sm:w-20 sm:h-28 rounded-lg bg-zinc-950/60 border-2 border-amber-400/35 shadow-inner flex items-end justify-center p-1.5 overflow-hidden">
+              <!-- Acrylic front lip reflection -->
+              <div class="absolute inset-x-0 top-0 h-3 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
+              <!-- Visual stack of discarded cards -->
+              <div id="discard-visual-stack" class="w-full h-full relative flex items-end justify-center"></div>
+              <div class="absolute bottom-1 inset-x-1 bg-zinc-950/85 rounded px-1 py-0.5 text-center border border-white/10">
+                <span class="block text-[9px] uppercase tracking-wider text-zinc-400">Discard</span>
+                <span id="discard-count-label" class="font-mono-num text-[11px] font-bold text-amber-300">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CENTER: DEALER AREA -->
+          <div class="col-span-6 sm:col-span-6 flex flex-col items-center">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="font-serif-casino text-xs sm:text-sm tracking-widest text-amber-200/90 font-bold uppercase">Dealer</span>
+              <span id="dealer-score-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono-num font-bold bg-zinc-950/85 text-amber-300 border border-amber-500/40 shadow hidden">0</span>
+            </div>
+            <!-- Dealer Card Hand Container -->
+            <div id="dealer-cards-container" class="min-h-[108px] sm:min-h-[140px] flex items-center justify-center py-1"></div>
+          </div>
+
+          <!-- RIGHT: VISUAL CARD SHOE WITH CUT CARD -->
+          <div class="col-span-3 sm:col-span-3 flex flex-col items-end">
+            <div id="shoe-anchor" class="relative w-18 sm:w-24 h-24 sm:h-28 rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border-2 border-amber-500/45 shadow-2xl p-2 flex flex-col justify-between overflow-hidden">
+              <!-- Visual Shoe Deck Bar & Cut Card -->
+              <div class="flex items-center justify-between gap-1">
+                <span class="text-[9px] font-bold tracking-wider uppercase text-amber-400">6-Deck Shoe</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Cryptographic RNG Active"></span>
+              </div>
+
+              <!-- 3D angled card stack inside shoe -->
+              <div class="relative w-full h-11 bg-zinc-900/90 rounded border border-white/10 overflow-hidden p-1 flex items-center">
+                <!-- Remaining cards bar -->
+                <div id="shoe-fill-bar" class="h-full bg-gradient-to-r from-red-800 via-red-700 to-red-600 rounded-sm border-r-2 border-white transition-all duration-300" style="width: 100%;"></div>
+                <!-- Cut Card Marker at 25% remaining -->
+                <div class="absolute top-0 bottom-0 left-[25%] w-1 bg-amber-300 shadow-[0_0_6px_#fde047]" title="Cut Card Position"></div>
+              </div>
+
+              <div class="flex items-center justify-between text-[10px] font-mono-num">
+                <span class="text-zinc-400">Cards:</span>
+                <span id="shoe-count-label" class="font-bold text-white">312/312</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MIDDLE STATUS BANNER / INSURANCE PROMPT / SHUFFLE ANIMATION STAGE -->
+        <div class="relative z-20 my-1 flex flex-col items-center justify-center min-h-[48px]">
+
+          <!-- Status Banner Pill -->
+          <div id="table-status-banner" class="px-4 py-1.5 rounded-full bg-zinc-950/85 border border-amber-400/40 text-amber-200 text-xs sm:text-sm font-semibold tracking-wide shadow-xl transition-all duration-300">
+            Select chips below to place your bet
+          </div>
+
+          <!-- Insurance Decision Bar (Hidden unless Dealer shows Ace) -->
+          <div id="insurance-prompt-bar" class="hidden mt-2 px-4 py-2 rounded-xl bg-zinc-950/95 border border-amber-400/60 shadow-2xl flex flex-wrap items-center justify-center gap-3">
+            <span class="text-xs sm:text-sm font-medium text-amber-200">Dealer shows an Ace. Take Insurance (Pays 2:1)?</span>
+            <div class="flex items-center gap-2">
+              <button id="btn-insure-yes" type="button" class="px-3 py-1 rounded-lg btn-gold text-xs font-bold">Buy Insurance</button>
+              <button id="btn-insure-no" type="button" class="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-600 text-xs font-semibold">No Insurance</button>
+            </div>
+          </div>
+
+          <!-- Riffle Shuffle Animation Overlay -->
+          <div id="shuffle-overlay" class="hidden absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-40">
+            <div class="px-6 py-4 rounded-2xl bg-zinc-950/90 border border-amber-500/50 shadow-2xl flex flex-col items-center gap-3">
+              <div id="shuffle-cards-stage" class="relative w-44 h-28 flex items-center justify-center"></div>
+              <div class="flex items-center gap-2 text-amber-300 font-serif-casino text-xs sm:text-sm tracking-widest uppercase">
+                <svg class="w-4 h-4 animate-spin text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                <span>Cryptographic Riffle Shuffle...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOTTOM FELT AREA: PLAYER HANDS + BETTING CIRCLE -->
+        <div class="relative z-10 flex flex-col items-center justify-end gap-2">
+
+          <!-- Player Hands Wrapper (1 Hand normally, 2 Hands side-by-side when Split) -->
+          <div id="player-hands-wrapper" class="w-full flex flex-wrap items-center justify-center gap-4 sm:gap-8 min-h-[135px] sm:min-h-[160px]">
+            <!-- Hand 0 (Primary Hand) -->
+            <div id="player-hand-box-0" class="hand-box rounded-2xl px-3 py-2 flex flex-col items-center relative">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span id="player-hand-title-0" class="text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">Player Hand</span>
+                <span id="player-score-badge-0" class="px-2.5 py-0.5 rounded-full text-xs font-mono-num font-bold bg-zinc-950/90 text-white border border-white/20 shadow hidden">0</span>
+                <span id="player-outcome-badge-0" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider hidden"></span>
+              </div>
+              <div id="player-cards-container-0" class="min-h-[105px] sm:min-h-[136px] flex items-center justify-center py-0.5"></div>
+            </div>
+
+            <!-- Hand 1 (Split Hand, Hidden by Default) -->
+            <div id="player-hand-box-1" class="hand-box rounded-2xl px-3 py-2 flex flex-col items-center relative hidden">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span id="player-hand-title-1" class="text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">Split Hand 2</span>
+                <span id="player-score-badge-1" class="px-2.5 py-0.5 rounded-full text-xs font-mono-num font-bold bg-zinc-950/90 text-white border border-white/20 shadow hidden">0</span>
+                <span id="player-outcome-badge-1" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider hidden"></span>
+              </div>
+              <div id="player-cards-container-1" class="min-h-[105px] sm:min-h-[136px] flex items-center justify-center py-0.5"></div>
+            </div>
+          </div>
+
+          <!-- BETTING CIRCLE & 3D STACKED CHIPS -->
+          <div class="flex items-center justify-center gap-6 mt-0.5">
+            <div id="betting-circle-anchor" class="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
+              <!-- Ornate Golden SVG Betting Ring -->
+              <svg id="betting-circle-svg" class="betting-circle-ring w-full h-full active-bet-target" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="52" fill="rgba(0,0,0,0.22)" stroke="#d4af37" stroke-width="2.5" />
+                <circle cx="60" cy="60" r="45" fill="none" stroke="rgba(249,226,156,0.45)" stroke-width="1.2" stroke-dasharray="6 4" />
+                <text x="60" y="96" text-anchor="middle" fill="rgba(249,226,156,0.5)" font-family="Cinzel, serif" font-size="8.5" font-weight="700" letter-spacing="1.5">BET</text>
+              </svg>
+
+              <!-- 3D Chip Stack Container -->
+              <div id="bet-chip-stack" class="absolute inset-0 pointer-events-none"></div>
+
+              <!-- Current Bet Amount Pill -->
+              <div id="current-bet-pill" class="absolute -bottom-2 px-2.5 py-0.5 rounded-full bg-zinc-950 border border-amber-400/60 text-amber-300 font-mono-num text-xs font-bold shadow-lg">
+                $0
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- BOTTOM CONTROL DECK: BANKROLL + SVG CASINO CHIPS + GAMEPLAY ACTIONS -->
+    <section class="w-full bg-zinc-950/95 border border-amber-500/25 rounded-2xl p-3 sm:p-4 shadow-2xl grid grid-cols-1 lg:grid-cols-12 items-center gap-3">
+
+      <!-- Left: Player Bankroll & Wager Stats -->
+      <div class="lg:col-span-3 flex items-center justify-around lg:justify-start gap-4 bg-zinc-900/80 border border-zinc-800 rounded-xl px-3.5 py-2.5">
+        <div>
+          <span class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Bankroll</span>
+          <span id="bankroll-display" class="font-mono-num text-lg sm:text-xl font-bold text-emerald-400">$2,500</span>
+        </div>
+        <div class="h-8 w-px bg-zinc-800"></div>
+        <div>
+          <span class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Total Wager</span>
+          <span id="wager-display" class="font-mono-num text-lg sm:text-xl font-bold text-amber-300">$0</span>
+        </div>
+        <div class="h-8 w-px bg-zinc-800"></div>
+        <div>
+          <span class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Last Payout</span>
+          <span id="payout-display" class="font-mono-num text-sm sm:text-base font-bold text-zinc-300">$0</span>
+        </div>
+      </div>
+
+      <!-- Center: Interactive SVG Casino Chips Rack ($5, $25, $100, $500) -->
+      <div class="lg:col-span-5 flex items-center justify-center gap-2.5 sm:gap-4 py-1" id="chip-rack-container">
+        <!-- $5 Red Casino Chip -->
+        <button type="button" data-chip-value="5" class="rack-chip-btn relative w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center cursor-pointer" title="Bet $5 Chip">
+          <svg class="w-full h-full" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="47" fill="#b91c1c" stroke="#ffffff" stroke-width="2"/>
+            <circle cx="50" cy="50" r="41" fill="none" stroke="#ffffff" stroke-width="6" stroke-dasharray="10 11.5"/>
+            <circle cx="50" cy="50" r="32" fill="#991b1b" stroke="#fca5a5" stroke-width="1.8"/>
+            <circle cx="50" cy="50" r="27" fill="#fef2f2" stroke="#b91c1c" stroke-width="1.2"/>
+            <text x="50" y="55" text-anchor="middle" fill="#991b1b" font-family="JetBrains Mono, monospace" font-weight="800" font-size="18">$5</text>
+          </svg>
+        </button>
+
+        <!-- $25 Green Casino Chip -->
+        <button type="button" data-chip-value="25" class="rack-chip-btn relative w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center cursor-pointer" title="Bet $25 Chip">
+          <svg class="w-full h-full" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="47" fill="#15803d" stroke="#ffffff" stroke-width="2"/>
+            <circle cx="50" cy="50" r="41" fill="none" stroke="#ffffff" stroke-width="6" stroke-dasharray="10 11.5"/>
+            <circle cx="50" cy="50" r="32" fill="#166534" stroke="#86efac" stroke-width="1.8"/>
+            <circle cx="50" cy="50" r="27" fill="#f0fdf4" stroke="#15803d" stroke-width="1.2"/>
+            <text x="50" y="55" text-anchor="middle" fill="#166534" font-family="JetBrains Mono, monospace" font-weight="800" font-size="16">$25</text>
+          </svg>
+        </button>
+
+        <!-- $100 Black & Gold Casino Chip -->
+        <button type="button" data-chip-value="100" class="rack-chip-btn relative w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center cursor-pointer" title="Bet $100 Chip">
+          <svg class="w-full h-full" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="47" fill="#18181b" stroke="#facc15" stroke-width="2"/>
+            <circle cx="50" cy="50" r="41" fill="none" stroke="#facc15" stroke-width="6" stroke-dasharray="10 11.5"/>
+            <circle cx="50" cy="50" r="32" fill="#09090b" stroke="#fde047" stroke-width="1.8"/>
+            <circle cx="50" cy="50" r="27" fill="#fefce8" stroke="#18181b" stroke-width="1.2"/>
+            <text x="50" y="55" text-anchor="middle" fill="#18181b" font-family="JetBrains Mono, monospace" font-weight="800" font-size="14">$100</text>
+          </svg>
+        </button>
+
+        <!-- $500 Royal Purple & Gold Casino Chip -->
+        <button type="button" data-chip-value="500" class="rack-chip-btn relative w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center cursor-pointer" title="Bet $500 Chip">
+          <svg class="w-full h-full" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="47" fill="#6b21a8" stroke="#fde047" stroke-width="2"/>
+            <circle cx="50" cy="50" r="41" fill="none" stroke="#fde047" stroke-width="6" stroke-dasharray="10 11.5"/>
+            <circle cx="50" cy="50" r="32" fill="#581c87" stroke="#e9d5ff" stroke-width="1.8"/>
+            <circle cx="50" cy="50" r="27" fill="#faf5ff" stroke="#581c87" stroke-width="1.2"/>
+            <text x="50" y="55" text-anchor="middle" fill="#581c87" font-family="JetBrains Mono, monospace" font-weight="800" font-size="14">$500</text>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Right: Context-Sensitive Controls (Betting Controls vs Hand Action Controls) -->
+      <div class="lg:col-span-4 flex items-center justify-center lg:justify-end">
+
+        <!-- Betting Phase Controls -->
+        <div id="betting-controls-group" class="flex flex-wrap items-center justify-center gap-2 w-full">
+          <button id="btn-clear-bet" type="button" class="btn-action px-3 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-600 text-xs font-bold uppercase tracking-wider">
+            Clear Bet
+          </button>
+          <button id="btn-rebet" type="button" class="btn-action px-3 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-300 border border-amber-500/40 text-xs font-bold uppercase tracking-wider">
+            Rebet
+          </button>
+          <button id="btn-deal" type="button" class="btn-action btn-gold px-6 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold uppercase tracking-wider flex-1 sm:flex-initial">
+            Deal Cards
+          </button>
+        </div>
+
+        <!-- Playing Phase Controls (Hit / Stand / Double / Split) -->
+        <div id="action-controls-group" class="hidden flex-wrap items-center justify-center gap-2 w-full">
+          <button id="btn-hit" type="button" class="btn-action px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 text-xs sm:text-sm font-extrabold uppercase tracking-wider flex-1">
+            Hit
+          </button>
+          <button id="btn-stand" type="button" class="btn-action px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white border border-amber-400/50 text-xs sm:text-sm font-extrabold uppercase tracking-wider flex-1">
+            Stand
+          </button>
+          <button id="btn-double" type="button" class="btn-action px-3.5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white border border-sky-400/50 text-xs font-bold uppercase tracking-wider">
+            Double
+          </button>
+          <button id="btn-split" type="button" class="btn-action px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/50 text-xs font-bold uppercase tracking-wider">
+            Split
+          </button>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- CRYPTOGRAPHIC FAIRNESS VERIFICATION MODAL -->
+  <div id="rng-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-zinc-950 border border-amber-500/40 rounded-2xl max-w-lg w-full p-5 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3 mb-3">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          <h2 class="font-serif-casino text-base font-bold text-amber-300">Cryptographic Fairness &amp; RNG</h2>
+        </div>
+        <button id="btn-close-rng-modal" type="button" class="p-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="space-y-3 text-xs text-zinc-300 leading-relaxed">
+        <p>
+          This Blackjack table uses an unrigged 6-deck casino shoe (312 cards) shuffled via the <strong class="text-white">Fisher-Yates algorithm</strong> driven by <code class="text-emerald-300 bg-zinc-900 px-1 py-0.5 rounded">window.crypto.getRandomValues()</code> with rejection sampling to eliminate modulo bias.
+        </p>
+        <p>
+          Once shuffled, the shoe order is locked in memory and dealt strictly from the top card down. A cut card is placed at 75% penetration (78 cards remaining), triggering an automatic reshuffle between rounds.
+        </p>
+        <div class="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 font-mono-num text-[11px] space-y-1">
+          <div class="flex justify-between"><span class="text-zinc-400">Shuffle Count:</span><span id="modal-shuffle-count" class="text-amber-300">1</span></div>
+          <div class="flex justify-between"><span class="text-zinc-400">Shoe Remaining:</span><span id="modal-shoe-remaining" class="text-emerald-400">312 / 312</span></div>
+          <div class="flex justify-between"><span class="text-zinc-400">Cut Card Threshold:</span><span class="text-zinc-200">78 cards</span></div>
+          <div class="pt-1 border-t border-zinc-800">
+            <span class="text-zinc-400 block mb-1">Last Shuffle Entropy Seed (Hex):</span>
+            <span id="modal-shuffle-seed" class="text-emerald-300 break-all">---</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION SCRIPT -->
+  <script>
+    (function () {
+      "use strict";
+
+      // Capture the clean, unmodified HTML document source immediately on load
+      // so the "Download index.html" button exports a pristine standalone file.
+      const CLEAN_HTML_SOURCE = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+
+      /* =========================================================================
+       * 1. PURE SVG ARTWORK GENERATORS (SUITS, FACE CARDS, CHIPS - NO EMOJIS)
+       * ========================================================================= */
+      const SUIT_CONFIG = {
+        spades: {
+          color: "#0f172a",
+          name: "Spades",
+          svgPath: "M16 2C10.2 9.8 3.5 14.4 3.5 20.5C3.5 24.6 6.8 27.2 10.6 27.2C12.8 27.2 14.5 26.1 15.4 24.7L12.8 30H19.2L16.6 24.7C17.5 26.1 19.2 27.2 21.4 27.2C25.2 27.2 28.5 24.6 28.5 20.5C28.5 14.4 21.8 9.8 16 2Z"
+        },
+        hearts: {
+          color: "#dc2626",
+          name: "Hearts",
+          svgPath: "M16 28.5C16 28.5 3.5 20.2 3.5 11.2C3.5 6.4 7.3 3 11.6 3C14.2 3 16 4.8 16 4.8C16 4.8 17.8 3 20.4 3C24.7 3 28.5 6.4 28.5 11.2C28.5 20.2 16 28.5 16 28.5Z"
+        },
+        diamonds: {
+          color: "#dc2626",
+          name: "Diamonds",
+          svgPath: "M16 2C19.5 8.8 23.2 12.5 29 16C23.2 19.5 19.5 23.2 16 30C12.5 23.2 8.8 19.5 3 16C8.8 12.5 12.5 8.8 16 2Z"
+        },
+        clubs: {
+          color: "#0f172a",
+          name: "Clubs",
+          svgPath: "M16 3.2C12.4 3.2 9.6 6 9.6 9.5C9.6 11.6 10.7 13.5 12.3 14.6C8.5 14.1 4.5 16.5 4.5 20.8C4.5 24.4 7.5 27.1 11 27.1C13.3 27.1 14.9 25.8 15.5 24.4L13 30H19L16.5 24.4C17.1 25.8 18.7 27.1 21 27.1C24.5 27.1 27.5 24.4 27.5 20.8C27.5 16.5 23.5 14.1 19.7 14.6C21.3 13.5 22.4 11.6 22.4 9.5C22.4 6 19.6 3.2 16 3.2Z"
+        }
+      };
+
+      function createSuitSVG(suit, sizeClass) {
+        const cfg = SUIT_CONFIG[suit];
+        return `<svg class="${sizeClass}" viewBox="0 0 32 32" fill="${cfg.color}" aria-hidden="true"><path d="${cfg.svgPath}"/></svg>`;
+      }
+
+      function createCardBackSVG() {
+        return `
+          <svg class="w-full h-full" viewBox="0 0 80 116" preserveAspectRatio="none">
+            <defs>
+              <pattern id="royalGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 5 0 L 10 5 L 5 10 L 0 5 Z" fill="none" stroke="rgba(249,226,156,0.35)" stroke-width="0.9"/>
+                <circle cx="5" cy="5" r="1.1" fill="rgba(249,226,156,0.45)"/>
+              </pattern>
+            </defs>
+            <rect x="4" y="4" width="72" height="108" rx="4" fill="url(#royalGrid)" stroke="#d4af37" stroke-width="1.2"/>
+            <g transform="translate(40, 58)">
+              <polygon points="0,-18 14,0 0,18 -14,0" fill="#7f1d1d" stroke="#f9e29c" stroke-width="1.4"/>
+              <polygon points="0,-11 8,0 0,11 -8,0" fill="#d4af37"/>
+            </g>
+          </svg>
+        `;
+      }
+
+      function createCardCenterArt(rank, suit) {
+        const cfg = SUIT_CONFIG[suit];
+        const isFace = rank === "J" || rank === "Q" || rank === "K";
+
+        if (isFace) {
+          const titleMap = { J: "JACK", Q: "QUEEN", K: "KING" };
+          return `
+            <div class="w-full flex-1 my-0.5 rounded border border-amber-500/50 bg-gradient-to-b from-amber-50/90 to-slate-100 flex flex-col items-center justify-center relative overflow-hidden">
+              <svg class="w-9 h-9 sm:w-11 sm:h-11" viewBox="0 0 48 48">
+                <polygon points="8,34 6,16 16,24 24,12 32,24 42,16 40,34" fill="#d4af37" stroke="#78350f" stroke-width="1.6" stroke-linejoin="round"/>
+                <rect x="8" y="34" width="32" height="4" rx="1" fill="#78350f"/>
+                <circle cx="16" cy="14" r="2" fill="${cfg.color}"/>
+                <circle cx="24" cy="8" r="2.4" fill="${cfg.color}"/>
+                <circle cx="32" cy="14" r="2" fill="${cfg.color}"/>
+              </svg>
+              <div class="w-4 h-4 -mt-1">${createSuitSVG(suit, "w-full h-full")}</div>
+              <span class="text-[7px] font-serif-casino font-bold tracking-widest text-slate-600 mt-0.5">${titleMap[rank]}</span>
+            </div>
+          `;
+        }
+
+        if (rank === "A") {
+          return `
+            <div class="w-full flex-1 flex items-center justify-center">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-sm">${createSuitSVG(suit, "w-full h-full")}</div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="w-full flex-1 flex items-center justify-center relative">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 opacity-90">${createSuitSVG(suit, "w-full h-full")}</div>
+          </div>
+        `;
+      }
+
+      function createChipSVGMarkup(value) {
+        const chipThemes = {
+          5: { outer: "#b91c1c", inner: "#991b1b", ring: "#fca5a5", center: "#fef2f2", dash: "#ffffff", text: "#991b1b", fontSize: "18" },
+          25: { outer: "#15803d", inner: "#166534", ring: "#86efac", center: "#f0fdf4", dash: "#ffffff", text: "#166534", fontSize: "16" },
+          100: { outer: "#18181b", inner: "#09090b", ring: "#fde047", center: "#fefce8", dash: "#facc15", text: "#18181b", fontSize: "14" },
+          500: { outer: "#6b21a8", inner: "#581c87", ring: "#e9d5ff", center: "#faf5ff", dash: "#fde047", text: "#581c87", fontSize: "14" }
+        };
+        const t = chipThemes[value] || chipThemes[25];
+        return `
+          <svg class="w-full h-full" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="47" fill="${t.outer}" stroke="${t.dash}" stroke-width="2"/>
+            <circle cx="50" cy="50" r="41" fill="none" stroke="${t.dash}" stroke-width="6" stroke-dasharray="10 11.5"/>
+            <circle cx="50" cy="50" r="32" fill="${t.inner}" stroke="${t.ring}" stroke-width="1.8"/>
+            <circle cx="50" cy="50" r="27" fill="${t.center}" stroke="${t.outer}" stroke-width="1.2"/>
+            <text x="50" y="55" text-anchor="middle" fill="${t.text}" font-family="JetBrains Mono, monospace" font-weight="800" font-size="${t.fontSize}">$${value}</text>
+          </svg>
+        `;
+      }
+
+      /* =========================================================================
+       * 2. SYNTHESIZED WEB AUDIO SOUND ENGINE (NO EXTERNAL AUDIO FILES)
+       * ========================================================================= */
+      class CasinoSoundEngine {
+        constructor() {
+          this.ctx = null;
+          this.muted = false;
+        }
+
+        init() {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+              this.ctx = new AudioCtx();
+            }
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume();
+          }
+        }
+
+        playChipClink(pitchOffset = 0) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(1950 + pitchOffset, now);
+          osc.frequency.exponentialRampToValueAtTime(2850 + pitchOffset, now + 0.055);
+
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.07);
+        }
+
+        playCardSlide() {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+
+          const now = this.ctx.currentTime;
+          const bufferSize = this.ctx.sampleRate * 0.07;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.4));
+          }
+
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(1300, now);
+
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start(now);
+        }
+
+        playShuffleRiffle() {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+
+          for (let i = 0; i < 12; i++) {
+            setTimeout(() => this.playCardSlide(), i * 48);
+          }
+        }
+
+        playWinChime() {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((freq, idx) => {
+            const now = this.ctx.currentTime + idx * 0.075;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.14, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.29);
+          });
+        }
+
+        playBustTone() {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(190, now);
+          osc.frequency.linearRampToValueAtTime(115, now + 0.26);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.29);
+        }
+      }
+
+      const sound = new CasinoSoundEngine();
+
+      /* =========================================================================
+       * 3. CRYPTOGRAPHIC FISHER-YATES SHOE & RNG ENGINE (ZERO RIGGING)
+       * ========================================================================= */
+      const NUM_DECKS = 6;
+      const TOTAL_SHOE_CARDS = NUM_DECKS * 52; // 312 cards
+      const CUT_CARD_THRESHOLD = 78; // Reshuffle when <= 78 cards remain
+      const SUITS = ["spades", "hearts", "diamonds", "clubs"];
+      const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+
+      // Unbiased cryptographic random integer in [0, maxExclusive) using rejection sampling
+      function cryptoRandomInt(maxExclusive) {
+        if (maxExclusive <= 1) return 0;
+        const uint32Max = 0xFFFFFFFF;
+        const limit = uint32Max - (uint32Max % maxExclusive);
+        const buffer = new Uint32Array(1);
+        let value;
+        do {
+          window.crypto.getRandomValues(buffer);
+          value = buffer[0];
+        } while (value >= limit);
+        return value % maxExclusive;
+      }
+
+      function generateEntropyHex() {
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+      }
+
+      function buildFreshMultiDeckShoe() {
+        const deck = [];
+        for (let d = 0; d < NUM_DECKS; d++) {
+          for (const suit of SUITS) {
+            for (const rank of RANKS) {
+              deck.push({ rank, suit, deckIndex: d });
+            }
+          }
+        }
+        return deck;
+      }
+
+      function fisherYatesCryptoShuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = cryptoRandomInt(i + 1);
+          const temp = array[i];
+          array[i] = array[j];
+          array[j] = temp;
+        }
+        return array;
+      }
+
+      /* =========================================================================
+       * 4. GAME STATE & HAND EVALUATION LOGIC
+       * ========================================================================= */
+      const state = {
+        shoe: [],
+        discardPile: [],
+        shuffleCount: 0,
+        lastShuffleSeed: "",
+        bankroll: 2500,
+        currentBetChips: [],
+        lastBetChips: [],
+        phase: "BETTING", // BETTING | DEALING | INSURANCE | PLAYER_TURN | DEALER_TURN | RESOLVING | SHUFFLING
+        dealerHand: [],
+        dealerHoleHidden: true,
+        playerHands: [], // Array of { cards: [], bet: number, doubled: boolean, stood: boolean, busted: boolean, isBlackjack: boolean, domElements: [] }
+        activeHandIndex: 0,
+        insuranceBet: 0,
+        needsCutCardShuffle: false
+      };
+
+      function evaluateHand(cards) {
+        let total = 0;
+        let aces = 0;
+        for (const c of cards) {
+          if (c.rank === "A") {
+            aces += 1;
+            total += 11;
+          } else if (["K", "Q", "J", "10"].includes(c.rank)) {
+            total += 10;
+          } else {
+            total += parseInt(c.rank, 10);
+          }
+        }
+        while (total > 21 && aces > 0) {
+          total -= 10;
+          aces -= 1;
+        }
+        const isSoft = aces > 0 && total <= 21;
+        const isBlackjack = cards.length === 2 && total === 21;
+        const isBust = total > 21;
+        return { total, isSoft, isBlackjack, isBust };
+      }
+
+      function cardPointValue(card) {
+        if (card.rank === "A") return 11;
+        if (["K", "Q", "J", "10"].includes(card.rank)) return 10;
+        return parseInt(card.rank, 10);
+      }
+
+      function sumArray(arr) {
+        return arr.reduce((acc, v) => acc + v, 0);
+      }
+
+      function formatCurrency(amount) {
+        return "$" + amount.toLocaleString("en-US");
+      }
+
+      const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+      /* =========================================================================
+       * 5. DOM REFERENCES
+       * ========================================================================= */
+      const dom = {
+        bankrollDisplay: document.getElementById("bankroll-display"),
+        wagerDisplay: document.getElementById("wager-display"),
+        payoutDisplay: document.getElementById("payout-display"),
+        currentBetPill: document.getElementById("current-bet-pill"),
+        betChipStack: document.getElementById("bet-chip-stack"),
+        bettingCircleAnchor: document.getElementById("betting-circle-anchor"),
+        bettingCircleSvg: document.getElementById("betting-circle-svg"),
+        shoeAnchor: document.getElementById("shoe-anchor"),
+        shoeCountLabel: document.getElementById("shoe-count-label"),
+        shoeFillBar: document.getElementById("shoe-fill-bar"),
+        discardTrayAnchor: document.getElementById("discard-tray-anchor"),
+        discardCountLabel: document.getElementById("discard-count-label"),
+        discardVisualStack: document.getElementById("discard-visual-stack"),
+        dealerCardsContainer: document.getElementById("dealer-cards-container"),
+        dealerScoreBadge: document.getElementById("dealer-score-badge"),
+        tableStatusBanner: document.getElementById("table-status-banner"),
+        insurancePromptBar: document.getElementById("insurance-prompt-bar"),
+        btnInsureYes: document.getElementById("btn-insure-yes"),
+        btnInsureNo: document.getElementById("btn-insure-no"),
+        shuffleOverlay: document.getElementById("shuffle-overlay"),
+        shuffleCardsStage: document.getElementById("shuffle-cards-stage"),
+        chipRackButtons: Array.from(document.querySelectorAll("[data-chip-value]")),
+        bettingControlsGroup: document.getElementById("betting-controls-group"),
+        actionControlsGroup: document.getElementById("action-controls-group"),
+        btnClearBet: document.getElementById("btn-clear-bet"),
+        btnRebet: document.getElementById("btn-rebet"),
+        btnDeal: document.getElementById("btn-deal"),
+        btnHit: document.getElementById("btn-hit"),
+        btnStand: document.getElementById("btn-stand"),
+        btnDouble: document.getElementById("btn-double"),
+        btnSplit: document.getElementById("btn-split"),
+        btnShuffleDeck: document.getElementById("btn-shuffle-deck"),
+        btnResetBankroll: document.getElementById("btn-reset-bankroll"),
+        btnSoundToggle: document.getElementById("btn-sound-toggle"),
+        iconSoundOn: document.getElementById("icon-sound-on"),
+        iconSoundOff: document.getElementById("icon-sound-off"),
+        btnDownloadHtml: document.getElementById("btn-download-html"),
+        btnRngInfo: document.getElementById("btn-rng-info"),
+        rngModal: document.getElementById("rng-modal"),
+        btnCloseRngModal: document.getElementById("btn-close-rng-modal"),
+        modalShuffleCount: document.getElementById("modal-shuffle-count"),
+        modalShoeRemaining: document.getElementById("modal-shoe-remaining"),
+        modalShuffleSeed: document.getElementById("modal-shuffle-seed")
+      };
+
+      /* =========================================================================
+       * 6. UI & ANIMATION HELPERS
+       * ========================================================================= */
+      function setStatusBanner(message, tone = "gold") {
+        dom.tableStatusBanner.textContent = message;
+        dom.tableStatusBanner.className = "px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide shadow-xl transition-all duration-300 ";
+        if (tone === "win") {
+          dom.tableStatusBanner.className += "bg-emerald-950/95 border border-emerald-400/70 text-emerald-200";
+        } else if (tone === "danger") {
+          dom.tableStatusBanner.className += "bg-red-950/95 border border-red-400/70 text-red-200";
+        } else {
+          dom.tableStatusBanner.className += "bg-zinc-950/90 border border-amber-400/45 text-amber-200";
+        }
+      }
+
+      function updateShoeAndDiscardUI() {
+        const remaining = state.shoe.length;
+        dom.shoeCountLabel.textContent = `${remaining}/${TOTAL_SHOE_CARDS}`;
+        const pct = Math.max(0, Math.min(100, (remaining / TOTAL_SHOE_CARDS) * 100));
+        dom.shoeFillBar.style.width = `${pct}%`;
+
+        const discarded = state.discardPile.length;
+        dom.discardCountLabel.textContent = String(discarded);
+
+        // Render proportional card stack in discard tray
+        const layers = Math.min(12, Math.ceil(discarded / 18));
+        dom.discardVisualStack.innerHTML = "";
+        for (let i = 0; i < layers; i++) {
+          const layerEl = document.createElement("div");
+          layerEl.className = "absolute inset-x-2 h-3 rounded-sm bg-red-800 border border-white/60 shadow-sm";
+          layerEl.style.bottom = `${24 + i * 3}px`;
+          dom.discardVisualStack.appendChild(layerEl);
+        }
+
+        // Update fairness modal stats
+        dom.modalShuffleCount.textContent = String(state.shuffleCount);
+        dom.modalShoeRemaining.textContent = `${remaining} / ${TOTAL_SHOE_CARDS}`;
+        dom.modalShuffleSeed.textContent = state.lastShuffleSeed || "---";
+      }
+
+      function renderStackedBetChips() {
+        dom.betChipStack.innerHTML = "";
+        const maxVisible = 14;
+        const visibleChips = state.currentBetChips.slice(-maxVisible);
+        visibleChips.forEach((val, idx) => {
+          const chipEl = document.createElement("div");
+          chipEl.className = "chip-stack-item w-11 h-11 sm:w-12 sm:h-12";
+          chipEl.style.bottom = `${22 + idx * 4}px`;
+          chipEl.innerHTML = createChipSVGMarkup(val);
+          dom.betChipStack.appendChild(chipEl);
+        });
+      }
+
+      function updateControlsAndBankrollUI() {
+        const betSum = sumArray(state.currentBetChips);
+        const activeHandsWager = state.playerHands.reduce((acc, h) => acc + h.bet, 0) + state.insuranceBet;
+        const displayedWager = state.phase === "BETTING" ? betSum : activeHandsWager;
+
+        dom.bankrollDisplay.textContent = formatCurrency(state.bankroll);
+        dom.wagerDisplay.textContent = formatCurrency(displayedWager);
+        dom.currentBetPill.textContent = formatCurrency(betSum);
+
+        const isBetting = state.phase === "BETTING";
+        dom.bettingControlsGroup.classList.toggle("hidden", !isBetting);
+        dom.bettingControlsGroup.classList.toggle("flex", isBetting);
+
+        const isPlayerTurn = state.phase === "PLAYER_TURN";
+        dom.actionControlsGroup.classList.toggle("hidden", !isPlayerTurn);
+        dom.actionControlsGroup.classList.toggle("flex", isPlayerTurn);
+
+        dom.bettingCircleSvg.classList.toggle("active-bet-target", isBetting);
+
+        // Enable/disable chip rack buttons
+        dom.chipRackButtons.forEach(btn => {
+          const val = parseInt(btn.getAttribute("data-chip-value"), 10);
+          btn.disabled = !isBetting || state.bankroll < val;
+        });
+
+        dom.btnClearBet.disabled = !isBetting || betSum === 0;
+        const lastBetSum = sumArray(state.lastBetChips);
+        dom.btnRebet.disabled = !isBetting || betSum > 0 || lastBetSum === 0 || state.bankroll < lastBetSum;
+        dom.btnDeal.disabled = !isBetting || betSum === 0;
+
+        dom.btnShuffleDeck.disabled = !isBetting;
+        dom.btnResetBankroll.disabled = !isBetting;
+
+        // Player turn buttons
+        if (isPlayerTurn && state.playerHands[state.activeHandIndex]) {
+          const hand = state.playerHands[state.activeHandIndex];
+          const canDouble = hand.cards.length === 2 && state.bankroll >= hand.bet;
+          const canSplit =
+            state.playerHands.length === 1 &&
+            hand.cards.length === 2 &&
+            cardPointValue(hand.cards[0]) === cardPointValue(hand.cards[1]) &&
+            state.bankroll >= hand.bet;
+
+          dom.btnHit.disabled = false;
+          dom.btnStand.disabled = false;
+          dom.btnDouble.disabled = !canDouble;
+          dom.btnSplit.disabled = !canSplit;
+        }
+      }
+
+      // Animate a flying chip from source element to target element
+      function animateFlyingChip(value, fromEl, toEl) {
+        return new Promise(resolve => {
+          const fromRect = fromEl.getBoundingClientRect();
+          const toRect = toEl.getBoundingClientRect();
+
+          const flyer = document.createElement("div");
+          flyer.className = "flying-element w-12 h-12";
+          flyer.innerHTML = createChipSVGMarkup(value);
+
+          const startX = fromRect.left + fromRect.width / 2 - 24;
+          const startY = fromRect.top + fromRect.height / 2 - 24;
+          const endX = toRect.left + toRect.width / 2 - 24;
+          const endY = toRect.top + toRect.height / 2 - 24;
+
+          flyer.style.left = `${startX}px`;
+          flyer.style.top = `${startY}px`;
+          flyer.style.transform = "translate(0px, 0px) scale(1.1)";
+          document.body.appendChild(flyer);
+
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              const dx = endX - startX;
+              const dy = endY - startY;
+              flyer.style.transform = `translate(${dx}px, ${dy}px) scale(0.95)`;
+            });
+          });
+
+          setTimeout(() => {
+            flyer.remove();
+            resolve();
+          }, 390);
+        });
+      }
+
+      // Create a DOM element for a playing card
+      function createPlayingCardElement(card, faceUp = true, isDoubled = false) {
+        const cfg = SUIT_CONFIG[card.suit];
+        const wrapper = document.createElement("div");
+        wrapper.className = "playing-card" + (isDoubled ? " doubled-card" : "");
+
+        const inner = document.createElement("div");
+        inner.className = "card-inner" + (faceUp ? " is-flipped" : "");
+
+        const backFace = document.createElement("div");
+        backFace.className = "card-face card-back";
+        backFace.innerHTML = createCardBackSVG();
+
+        const frontFace = document.createElement("div");
+        frontFace.className = "card-face card-front";
+        frontFace.innerHTML = `
+          <div class="flex flex-col items-start leading-none" style="color: ${cfg.color}">
+            <span class="font-mono-num text-xs sm:text-sm font-extrabold tracking-tighter">${card.rank}</span>
+            <div class="w-3 h-3 sm:w-3.5 sm:h-3.5 mt-0.5">${createSuitSVG(card.suit, "w-full h-full")}</div>
+          </div>
+          ${createCardCenterArt(card.rank, card.suit)}
+          <div class="flex flex-col items-start leading-none self-end rotate-180" style="color: ${cfg.color}">
+            <span class="font-mono-num text-xs sm:text-sm font-extrabold tracking-tighter">${card.rank}</span>
+            <div class="w-3 h-3 sm:w-3.5 sm:h-3.5 mt-0.5">${createSuitSVG(card.suit, "w-full h-full")}</div>
+          </div>
+        `;
+
+        inner.appendChild(backFace);
+        inner.appendChild(frontFace);
+        wrapper.appendChild(inner);
+        return wrapper;
+      }
+
+      // Deal a card from the top of the cryptographic shoe with 3D slide & flip animation
+      async function dealCardFromShoe(targetContainer, faceUp = true, isDoubled = false) {
+        const card = state.shoe.shift();
+        if (state.shoe.length <= CUT_CARD_THRESHOLD) {
+          state.needsCutCardShuffle = true;
+        }
+        updateShoeAndDiscardUI();
+
+        sound.playCardSlide();
+
+        const cardEl = createPlayingCardElement(card, false, isDoubled);
+        targetContainer.appendChild(cardEl);
+
+        const shoeRect = dom.shoeAnchor.getBoundingClientRect();
+        const cardRect = cardEl.getBoundingClientRect();
+
+        const deltaX = (shoeRect.left + shoeRect.width / 2) - (cardRect.left + cardRect.width / 2);
+        const deltaY = (shoeRect.top + shoeRect.height / 2) - (cardRect.top + cardRect.height / 2);
+
+        cardEl.style.transition = "none";
+        cardEl.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.45) rotate(-18deg)`;
+
+        await new Promise(resolve => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              cardEl.style.transition = "transform 0.42s cubic-bezier(0.22, 1, 0.36, 1)";
+              cardEl.style.transform = isDoubled ? "rotate(-90deg) translateY(-8px)" : "translate(0px, 0px) scale(1) rotate(0deg)";
+              if (faceUp) {
+                setTimeout(() => {
+                  const inner = cardEl.querySelector(".card-inner");
+                  if (inner) inner.classList.add("is-flipped");
+                }, 140);
+              }
+              setTimeout(resolve, 430);
+            });
+          });
+        });
+
+        return { card, cardEl };
+      }
+
+      function updateHandScoreUI() {
+        // Dealer Score Badge
+        if (state.dealerHand.length === 0) {
+          dom.dealerScoreBadge.classList.add("hidden");
+        } else {
+          dom.dealerScoreBadge.classList.remove("hidden");
+          if (state.dealerHoleHidden) {
+            const upCardEval = evaluateHand([state.dealerHand[0]]);
+            dom.dealerScoreBadge.textContent = String(upCardEval.total);
+          } else {
+            const dEval = evaluateHand(state.dealerHand);
+            if (dEval.isBlackjack) {
+              dom.dealerScoreBadge.textContent = "BLACKJACK";
+            } else if (dEval.isBust) {
+              dom.dealerScoreBadge.textContent = `BUST (${dEval.total})`;
+            } else if (dEval.isSoft && dEval.total < 21 && state.phase === "DEALER_TURN") {
+              dom.dealerScoreBadge.textContent = `${dEval.total - 10} / ${dEval.total}`;
+            } else {
+              dom.dealerScoreBadge.textContent = String(dEval.total);
+            }
+          }
+        }
+
+        // Player Hands Score Badges
+        for (let i = 0; i < 2; i++) {
+          const box = document.getElementById(`player-hand-box-${i}`);
+          const badge = document.getElementById(`player-score-badge-${i}`);
+          const hand = state.playerHands[i];
+
+          if (!hand || hand.cards.length === 0) {
+            badge.classList.add("hidden");
+            box.classList.remove("active-turn-hand");
+            continue;
+          }
+
+          badge.classList.remove("hidden");
+          const hEval = evaluateHand(hand.cards);
+          if (hEval.isBlackjack && state.playerHands.length === 1) {
+            badge.textContent = "BLACKJACK 21";
+          } else if (hEval.isBust) {
+            badge.textContent = `BUST (${hEval.total})`;
+          } else if (hEval.isSoft && !hand.stood && hEval.total < 21) {
+            badge.textContent = `${hEval.total - 10} / ${hEval.total}`;
+          } else {
+            badge.textContent = String(hEval.total);
+          }
+
+          const isCurrentActive = state.phase === "PLAYER_TURN" && state.activeHandIndex === i;
+          box.classList.toggle("active-turn-hand", isCurrentActive);
+        }
+      }
+
+      function setHandOutcomeBadge(handIdx, label, styleType) {
+        const badge = document.getElementById(`player-outcome-badge-${handIdx}`);
+        if (!badge) return;
+        badge.textContent = label;
+        badge.className = "px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow ";
+        if (styleType === "win") {
+          badge.className += "bg-emerald-500 text-zinc-950";
+        } else if (styleType === "push") {
+          badge.className += "bg-amber-400 text-zinc-950";
+        } else {
+          badge.className += "bg-red-600 text-white";
+        }
+      }
+
+      /* =========================================================================
+       * 7. ANIMATED RIFFLE & CASCADE SHUFFLE SEQUENCE
+       * ========================================================================= */
+      async function performRiffleShuffleSequence() {
+        const prevPhase = state.phase;
+        state.phase = "SHUFFLING";
+        updateControlsAndBankrollUI();
+
+        // Build and cryptographically shuffle 6-deck shoe
+        state.shoe = fisherYatesCryptoShuffle(buildFreshMultiDeckShoe());
+        state.discardPile = [];
+        state.shuffleCount += 1;
+        state.lastShuffleSeed = generateEntropyHex();
+        state.needsCutCardShuffle = false;
+
+        dom.shuffleOverlay.classList.remove("hidden");
+        dom.shuffleCardsStage.innerHTML = "";
+
+        // Create 10 visual SVG card backs (5 left half, 5 right half) that riffle interleave
+        for (let i = 0; i < 10; i++) {
+          const isLeft = i % 2 === 0;
+          const cardVisual = document.createElement("div");
+          cardVisual.className = `absolute w-16 h-24 rounded-lg card-back shadow-xl ${isLeft ? "shuffle-card-left" : "shuffle-card-right"}`;
+          cardVisual.style.animationDelay = `${i * 35}ms`;
+          cardVisual.innerHTML = createCardBackSVG();
+          dom.shuffleCardsStage.appendChild(cardVisual);
+        }
+
+        sound.playShuffleRiffle();
+        updateShoeAndDiscardUI();
+
+        await sleep(1150);
+        dom.shuffleOverlay.classList.add("hidden");
+        state.phase = prevPhase === "SHUFFLING" ? "BETTING" : prevPhase;
+        setStatusBanner("Shoe cryptographically shuffled — Place your bet");
+        updateControlsAndBankrollUI();
+      }
+
+      /* =========================================================================
+       * 8. BETTING & TABLE CLEANUP FLOW
+       * ========================================================================= */
+      async function addChipToBet(chipValue, sourceBtn) {
+        if (state.phase !== "BETTING" || state.bankroll < chipValue) return;
+
+        state.bankroll -= chipValue;
+        state.currentBetChips.push(chipValue);
+        sound.playChipClink((chipValue % 7) * 35);
+        updateControlsAndBankrollUI();
+
+        await animateFlyingChip(chipValue, sourceBtn, dom.bettingCircleAnchor);
+        renderStackedBetChips();
+        updateControlsAndBankrollUI();
+      }
+
+      function clearCurrentBet() {
+        if (state.phase !== "BETTING" || state.currentBetChips.length === 0) return;
+        const refunded = sumArray(state.currentBetChips);
+        state.bankroll += refunded;
+        state.currentBetChips = [];
+        sound.playChipClink(-120);
+        renderStackedBetChips();
+        updateControlsAndBankrollUI();
+        setStatusBanner("Bet cleared — Select chips to wager");
+      }
+
+      async function rebetPreviousWager() {
+        if (state.phase !== "BETTING" || state.currentBetChips.length > 0) return;
+        const needed = sumArray(state.lastBetChips);
+        if (needed === 0 || state.bankroll < needed) return;
+
+        state.bankroll -= needed;
+        state.currentBetChips = [...state.lastBetChips];
+        sound.playChipClink(80);
+        renderStackedBetChips();
+        updateControlsAndBankrollUI();
+        setStatusBanner(`Rebet ${formatCurrency(needed)} placed — Ready to deal`);
+      }
+
+      async function clearTableCardsToDiscard() {
+        const totalCardsOnTable =
+          state.dealerHand.length +
+          state.playerHands.reduce((acc, h) => acc + h.cards.length, 0);
+
+        if (totalCardsOnTable === 0) return;
+
+        // Move cards in memory to discard pile
+        state.discardPile.push(...state.dealerHand);
+        state.playerHands.forEach(h => state.discardPile.push(...h.cards));
+        state.dealerHand = [];
+        state.playerHands = [];
+
+        dom.dealerCardsContainer.innerHTML = "";
+        document.getElementById("player-cards-container-0").innerHTML = "";
+        document.getElementById("player-cards-container-1").innerHTML = "";
+        document.getElementById("player-hand-box-1").classList.add("hidden");
+        document.getElementById("player-hand-title-0").textContent = "Player Hand";
+        document.getElementById("player-outcome-badge-0").classList.add("hidden");
+        document.getElementById("player-outcome-badge-1").classList.add("hidden");
+
+        updateHandScoreUI();
+        updateShoeAndDiscardUI();
+      }
+
+      /* =========================================================================
+       * 9. CORE BLACKJACK GAMEPLAY ENGINE
+       * ========================================================================= */
+      async function startDealRound() {
+        const totalBet = sumArray(state.currentBetChips);
+        if (state.phase !== "BETTING" || totalBet === 0) return;
+
+        await clearTableCardsToDiscard();
+
+        if (state.needsCutCardShuffle || state.shoe.length <= CUT_CARD_THRESHOLD) {
+          setStatusBanner("Cut card reached — Shuffling 6-deck shoe...");
+          await performRiffleShuffleSequence();
+        }
+
+        state.phase = "DEALING";
+        state.lastBetChips = [...state.currentBetChips];
+        state.insuranceBet = 0;
+        state.dealerHoleHidden = true;
+        dom.payoutDisplay.textContent = "$0";
+
+        state.playerHands = [
+          {
+            cards: [],
+            bet: totalBet,
+            doubled: false,
+            stood: false,
+            busted: false,
+            isBlackjack: false,
+            domElements: []
+          }
+        ];
+        state.activeHandIndex = 0;
+        updateControlsAndBankrollUI();
+        setStatusBanner("Dealing cards...");
+
+        const playerContainer0 = document.getElementById("player-cards-container-0");
+
+        // Standard Blackjack dealing sequence: Player 1 -> Dealer Up -> Player 2 -> Dealer Hole (Face Down)
+        const pCard1 = await dealCardFromShoe(playerContainer0, true);
+        state.playerHands[0].cards.push(pCard1.card);
+        state.playerHands[0].domElements.push(pCard1.cardEl);
+        updateHandScoreUI();
+
+        const dCard1 = await dealCardFromShoe(dom.dealerCardsContainer, true);
+        state.dealerHand.push(dCard1.card);
+        updateHandScoreUI();
+
+        const pCard2 = await dealCardFromShoe(playerContainer0, true);
+        state.playerHands[0].cards.push(pCard2.card);
+        state.playerHands[0].domElements.push(pCard2.cardEl);
+        updateHandScoreUI();
+
+        const dCard2 = await dealCardFromShoe(dom.dealerCardsContainer, false);
+        state.dealerHand.push(dCard2.card);
+        updateHandScoreUI();
+
+        // Check for Insurance offer if Dealer upcard is an Ace
+        if (state.dealerHand[0].rank === "A") {
+          const insuranceCost = Math.floor(totalBet / 2);
+          if (insuranceCost > 0 && state.bankroll >= insuranceCost) {
+            state.phase = "INSURANCE";
+            dom.btnInsureYes.textContent = `Buy Insurance (${formatCurrency(insuranceCost)})`;
+            dom.insurancePromptBar.classList.remove("hidden");
+            setStatusBanner("Dealer shows an Ace — Insurance available");
+            const tookInsurance = await new Promise(resolve => {
+              dom.btnInsureYes.onclick = () => resolve(true);
+              dom.btnInsureNo.onclick = () => resolve(false);
+            });
+            dom.insurancePromptBar.classList.add("hidden");
+            if (tookInsurance) {
+              state.bankroll -= insuranceCost;
+              state.insuranceBet = insuranceCost;
+              sound.playChipClink(120);
+              updateControlsAndBankrollUI();
+            }
+          }
+        }
+
+        // Check for Natural Blackjacks
+        const pEval = evaluateHand(state.playerHands[0].cards);
+        const dEval = evaluateHand(state.dealerHand);
+
+        if (pEval.isBlackjack || dEval.isBlackjack) {
+          state.playerHands[0].isBlackjack = pEval.isBlackjack;
+          await revealDealerHoleCard();
+          await settleRoundOutcomes();
+          return;
+        }
+
+        // Otherwise begin Player Turn
+        state.phase = "PLAYER_TURN";
+        state.activeHandIndex = 0;
+        updateHandScoreUI();
+        updateControlsAndBankrollUI();
+        setStatusBanner("Your turn — Hit, Stand, Double, or Split");
+      }
+
+      async function revealDealerHoleCard() {
+        if (!state.dealerHoleHidden) return;
+        state.dealerHoleHidden = false;
+        const holeCardEl = dom.dealerCardsContainer.children[1];
+        if (holeCardEl) {
+          sound.playCardSlide();
+          const inner = holeCardEl.querySelector(".card-inner");
+          if (inner) inner.classList.add("is-flipped");
+        }
+        await sleep(460);
+        updateHandScoreUI();
+      }
+
+      async function handlePlayerHit() {
+        if (state.phase !== "PLAYER_TURN") return;
+        const idx = state.activeHandIndex;
+        const hand = state.playerHands[idx];
+        const container = document.getElementById(`player-cards-container-${idx}`);
+
+        state.phase = "DEALING";
+        updateControlsAndBankrollUI();
+
+        const dealt = await dealCardFromShoe(container, true);
+        hand.cards.push(dealt.card);
+        hand.domElements.push(dealt.cardEl);
+        updateHandScoreUI();
+
+        const hEval = evaluateHand(hand.cards);
+        if (hEval.isBust) {
+          hand.busted = true;
+          hand.stood = true;
+          sound.playBustTone();
+          setHandOutcomeBadge(idx, "BUST", "loss");
+          await sleep(350);
+          await advanceToNextHandOrDealer();
+        } else if (hEval.total === 21) {
+          hand.stood = true;
+          await sleep(280);
+          await advanceToNextHandOrDealer();
+        } else {
+          state.phase = "PLAYER_TURN";
+          updateHandScoreUI();
+          updateControlsAndBankrollUI();
+        }
+      }
+
+      async function handlePlayerStand() {
+        if (state.phase !== "PLAYER_TURN") return;
+        const hand = state.playerHands[state.activeHandIndex];
+        hand.stood = true;
+        await advanceToNextHandOrDealer();
+      }
+
+      async function handlePlayerDoubleDown() {
+        if (state.phase !== "PLAYER_TURN") return;
+        const idx = state.activeHandIndex;
+        const hand = state.playerHands[idx];
+        if (hand.cards.length !== 2 || state.bankroll < hand.bet) return;
+
+        state.phase = "DEALING";
+        state.bankroll -= hand.bet;
+        hand.bet *= 2;
+        hand.doubled = true;
+        sound.playChipClink(90);
+
+        if (state.playerHands.length === 1) {
+          state.currentBetChips.push(...state.lastBetChips);
+          renderStackedBetChips();
+        }
+        updateControlsAndBankrollUI();
+        setStatusBanner("Doubled Down — Drawing 1 final card...");
+
+        const container = document.getElementById(`player-cards-container-${idx}`);
+        const dealt = await dealCardFromShoe(container, true, true);
+        hand.cards.push(dealt.card);
+        hand.domElements.push(dealt.cardEl);
+        hand.stood = true;
+        updateHandScoreUI();
+
+        const hEval = evaluateHand(hand.cards);
+        if (hEval.isBust) {
+          hand.busted = true;
+          sound.playBustTone();
+          setHandOutcomeBadge(idx, "BUST", "loss");
+        }
+
+        await sleep(420);
+        await advanceToNextHandOrDealer();
+      }
+
+      async function handlePlayerSplitPairs() {
+        if (state.phase !== "PLAYER_TURN" || state.playerHands.length !== 1) return;
+        const hand0 = state.playerHands[0];
+        if (
+          hand0.cards.length !== 2 ||
+          cardPointValue(hand0.cards[0]) !== cardPointValue(hand0.cards[1]) ||
+          state.bankroll < hand0.bet
+        ) {
+          return;
+        }
+
+        state.phase = "DEALING";
+        state.bankroll -= hand0.bet;
+        sound.playChipClink(110);
+
+        const splitCard = hand0.cards.pop();
+        const splitCardEl = hand0.domElements.pop();
+
+        const hand1 = {
+          cards: [splitCard],
+          bet: hand0.bet,
+          doubled: false,
+          stood: false,
+          busted: false,
+          isBlackjack: false,
+          domElements: [splitCardEl]
+        };
+        state.playerHands.push(hand1);
+
+        // Reveal Split Hand 2 box and move second card into it
+        const box1 = document.getElementById("player-hand-box-1");
+        const container0 = document.getElementById("player-cards-container-0");
+        const container1 = document.getElementById("player-cards-container-1");
+        document.getElementById("player-hand-title-0").textContent = "Split Hand 1";
+        box1.classList.remove("hidden");
+        container1.appendChild(splitCardEl);
+
+        updateHandScoreUI();
+        updateControlsAndBankrollUI();
+        setStatusBanner("Pairs Split — Dealing second card to each hand...");
+
+        await sleep(260);
+        const dealt0 = await dealCardFromShoe(container0, true);
+        hand0.cards.push(dealt0.card);
+        hand0.domElements.push(dealt0.cardEl);
+        updateHandScoreUI();
+
+        await sleep(220);
+        const dealt1 = await dealCardFromShoe(container1, true);
+        hand1.cards.push(dealt1.card);
+        hand1.domElements.push(dealt1.cardEl);
+        updateHandScoreUI();
+
+        // Standard casino rule: splitting Aces deals 1 card to each Ace and stands automatically
+        if (hand0.cards[0].rank === "A") {
+          hand0.stood = true;
+          hand1.stood = true;
+          await sleep(400);
+          await runDealerTurnAndSettle();
+          return;
+        }
+
+        state.activeHandIndex = 0;
+        const eval0 = evaluateHand(hand0.cards);
+        if (eval0.total === 21) {
+          hand0.stood = true;
+          await advanceToNextHandOrDealer();
+        } else {
+          state.phase = "PLAYER_TURN";
+          updateHandScoreUI();
+          updateControlsAndBankrollUI();
+          setStatusBanner("Playing Split Hand 1");
+        }
+      }
+
+      async function advanceToNextHandOrDealer() {
+        if (state.activeHandIndex + 1 < state.playerHands.length) {
+          state.activeHandIndex += 1;
+          const nextHand = state.playerHands[state.activeHandIndex];
+          const nextEval = evaluateHand(nextHand.cards);
+          if (nextEval.total === 21) {
+            nextHand.stood = true;
+            await advanceToNextHandOrDealer();
+            return;
+          }
+          state.phase = "PLAYER_TURN";
+          updateHandScoreUI();
+          updateControlsAndBankrollUI();
+          setStatusBanner(`Playing Split Hand ${state.activeHandIndex + 1}`);
+        } else {
+          await runDealerTurnAndSettle();
+        }
+      }
+
+      async function runDealerTurnAndSettle() {
+        state.phase = "DEALER_TURN";
+        updateHandScoreUI();
+        updateControlsAndBankrollUI();
+
+        const anyPlayerHandLive = state.playerHands.some(h => !h.busted);
+        await revealDealerHoleCard();
+
+        if (anyPlayerHandLive) {
+          let dEval = evaluateHand(state.dealerHand);
+          while (dEval.total < 17) {
+            setStatusBanner("Dealer draws to 16, stands on all 17s...");
+            await sleep(420);
+            const dealt = await dealCardFromShoe(dom.dealerCardsContainer, true);
+            state.dealerHand.push(dealt.card);
+            dEval = evaluateHand(state.dealerHand);
+            updateHandScoreUI();
+          }
+        }
+
+        await sleep(360);
+        await settleRoundOutcomes();
+      }
+
+      async function settleRoundOutcomes() {
+        state.phase = "RESOLVING";
+        const dEval = evaluateHand(state.dealerHand);
+        let totalPayout = 0;
+
+        // Resolve Insurance side bet if placed
+        if (state.insuranceBet > 0 && dEval.isBlackjack) {
+          totalPayout += state.insuranceBet * 3; // Original insurance stake + 2:1 win
+        }
+
+        let summaryMessages = [];
+        let overallNetWin = false;
+        let anyPush = false;
+
+        state.playerHands.forEach((hand, idx) => {
+          const hEval = evaluateHand(hand.cards);
+          const prefix = state.playerHands.length > 1 ? `Hand ${idx + 1}: ` : "";
+
+          if (hEval.isBust) {
+            setHandOutcomeBadge(idx, "BUST", "loss");
+            summaryMessages.push(`${prefix}Bust`);
+          } else if (hand.isBlackjack && !dEval.isBlackjack) {
+            const bjReturn = Math.floor(hand.bet * 2.5); // Stake + 3:2 profit
+            totalPayout += bjReturn;
+            overallNetWin = true;
+            setHandOutcomeBadge(idx, "BLACKJACK 3:2", "win");
+            summaryMessages.push(`${prefix}Blackjack! Pays 3:2`);
+          } else if (dEval.isBlackjack && !hand.isBlackjack) {
+            setHandOutcomeBadge(idx, "DEALER BJ", "loss");
+            summaryMessages.push(`${prefix}Dealer Blackjack`);
+          } else if (dEval.isBust) {
+            totalPayout += hand.bet * 2;
+            overallNetWin = true;
+            setHandOutcomeBadge(idx, "WIN", "win");
+            summaryMessages.push(`${prefix}Dealer Busts — You Win!`);
+          } else if (hEval.total > dEval.total) {
+            totalPayout += hand.bet * 2;
+            overallNetWin = true;
+            setHandOutcomeBadge(idx, "WIN", "win");
+            summaryMessages.push(`${prefix}Win (${hEval.total} vs ${dEval.total})`);
+          } else if (hEval.total < dEval.total) {
+            setHandOutcomeBadge(idx, "LOSE", "loss");
+            summaryMessages.push(`${prefix}Dealer Wins (${dEval.total} vs ${hEval.total})`);
+          } else {
+            totalPayout += hand.bet;
+            anyPush = true;
+            setHandOutcomeBadge(idx, "PUSH", "push");
+            summaryMessages.push(`${prefix}Push (${hEval.total})`);
+          }
+        });
+
+        state.bankroll += totalPayout;
+        dom.payoutDisplay.textContent = formatCurrency(totalPayout);
+
+        if (overallNetWin) {
+          sound.playWinChime();
+          setStatusBanner(summaryMessages.join("  |  "), "win");
+        } else if (anyPush && totalPayout > 0) {
+          sound.playChipClink(0);
+          setStatusBanner(summaryMessages.join("  |  "), "gold");
+        } else {
+          setStatusBanner(summaryMessages.join("  |  "), "danger");
+        }
+
+        // Clear betting circle chips for next round
+        state.currentBetChips = [];
+        renderStackedBetChips();
+
+        // Auto-replenish if player ran completely out of funds
+        if (state.bankroll < 5) {
+          await sleep(1100);
+          state.bankroll = 2500;
+          setStatusBanner("Bankroll depleted — Complimentary $2,500 house reload applied!", "gold");
+        }
+
+        state.phase = "BETTING";
+        updateControlsAndBankrollUI();
+      }
+
+      /* =========================================================================
+       * 10. EVENT LISTENERS & DOWNLOAD HANDLER
+       * ========================================================================= */
+      dom.chipRackButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const val = parseInt(btn.getAttribute("data-chip-value"), 10);
+          addChipToBet(val, btn);
+        });
+      });
+
+      dom.btnClearBet.addEventListener("click", clearCurrentBet);
+      dom.btnRebet.addEventListener("click", rebetPreviousWager);
+      dom.btnDeal.addEventListener("click", startDealRound);
+
+      dom.btnHit.addEventListener("click", handlePlayerHit);
+      dom.btnStand.addEventListener("click", handlePlayerStand);
+      dom.btnDouble.addEventListener("click", handlePlayerDoubleDown);
+      dom.btnSplit.addEventListener("click", handlePlayerSplitPairs);
+
+      dom.btnShuffleDeck.addEventListener("click", async () => {
+        if (state.phase !== "BETTING") return;
+        await clearTableCardsToDiscard();
+        await performRiffleShuffleSequence();
+      });
+
+      dom.btnResetBankroll.addEventListener("click", async () => {
+        if (state.phase !== "BETTING") return;
+        state.currentBetChips = [];
+        state.bankroll = 2500;
+        dom.payoutDisplay.textContent = "$0";
+        renderStackedBetChips();
+        await clearTableCardsToDiscard();
+        sound.playChipClink(150);
+        updateControlsAndBankrollUI();
+        setStatusBanner("Bankroll reset to $2,500 — Place your bet");
+      });
+
+      dom.btnSoundToggle.addEventListener("click", () => {
+        sound.muted = !sound.muted;
+        dom.iconSoundOn.classList.toggle("hidden", sound.muted);
+        dom.iconSoundOff.classList.toggle("hidden", !sound.muted);
+      });
+
+      // Fairness Modal Toggle
+      if (dom.btnRngInfo) {
+        dom.btnRngInfo.addEventListener("click", () => {
+          dom.rngModal.classList.remove("hidden");
+          dom.rngModal.classList.add("flex");
+        });
+      }
+      dom.btnCloseRngModal.addEventListener("click", () => {
+        dom.rngModal.classList.add("hidden");
+        dom.rngModal.classList.remove("flex");
+      });
+      dom.rngModal.addEventListener("click", (e) => {
+        if (e.target === dom.rngModal) {
+          dom.rngModal.classList.add("hidden");
+          dom.rngModal.classList.remove("flex");
+        }
+      });
+
+      // Built-in Download index.html Handler
+      dom.btnDownloadHtml.addEventListener("click", () => {
+        const blob = new Blob([CLEAN_HTML_SOURCE], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "index.html";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      });
+
+      // Initialize the table with an authentic cryptographic riffle shuffle on load
+      window.addEventListener("load", async () => {
+        updateControlsAndBankrollUI();
+        await performRiffleShuffleSequence();
+      });
+    })();
+  </script>
+</body>
+</html>
