@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Royal Monte Carlo Blackjack — Cryptographic Casino Table</title>
+  <title>BJgame &amp; Cryptographic Casino Table</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --felt-light: #0f5c34;
@@ -16,14 +17,14 @@
       --gold-light: #f9e29c;
       --gold-mid: #d4af37;
       --gold-dark: #99731c;
-      --card-width: 96px;
-      --card-height: 136px;
+      --card-width: 92px;
+      --card-height: 130px;
     }
 
     @media (max-width: 640px) {
       :root {
-        --card-width: 74px;
-        --card-height: 105px;
+        --card-width: 70px;
+        --card-height: 100px;
       }
     }
 
@@ -38,7 +39,7 @@
       padding: 0;
       background-color: #070b09;
       color: #f8fafc;
-      font-family: 'Inter', sans-serif;
+      font-family: 'Prompt', 'Inter', sans-serif;
       overflow-x: hidden;
       min-height: 100vh;
       display: flex;
@@ -46,7 +47,7 @@
     }
 
     .font-serif-casino {
-      font-family: 'Cinzel', serif;
+      font-family: 'Cinzel', 'Prompt', serif;
     }
 
     .font-mono-num {
@@ -61,11 +62,12 @@
         inset 0 -6px 16px rgba(0, 0, 0, 0.85),
         0 20px 50px rgba(0, 0, 0, 0.9);
       border: 3px solid #4a2c1d;
+      transition: transform 0.15s ease;
     }
 
     .casino-felt {
       background:
-        radial-gradient(ellipse at 50% 35%, rgba(22, 117, 66, 0.92) 0%, rgba(10, 68, 38, 0.96) 55%, rgba(4, 34, 18, 1) 100%);
+        radial-gradient(ellipse at 50% 30%, rgba(22, 117, 66, 0.94) 0%, rgba(10, 68, 38, 0.97) 55%, rgba(4, 34, 18, 1) 100%);
       box-shadow:
         inset 0 0 70px rgba(0, 0, 0, 0.75),
         inset 0 0 18px rgba(0, 0, 0, 0.9);
@@ -92,7 +94,7 @@
       perspective: 1000px;
       position: relative;
       flex-shrink: 0;
-      transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), margin 0.3s ease;
+      transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), margin 0.3s ease, opacity 0.35s ease;
       transform-style: preserve-3d;
       z-index: 10;
     }
@@ -131,7 +133,6 @@
       overflow: hidden;
     }
 
-    /* Face Up Side (rotated 180deg so unflipped is back of card) */
     .card-front {
       background: linear-gradient(135deg, #ffffff 0%, #f8fafc 65%, #eef2f6 100%);
       border: 1.5px solid #cbd5e1;
@@ -142,7 +143,6 @@
       padding: 6px;
     }
 
-    /* Luxury Casino Back Side */
     .card-back {
       background: #7f1d1d;
       border: 4px solid #f8fafc;
@@ -152,7 +152,6 @@
       box-shadow: inset 0 0 0 1.5px #d4af37;
     }
 
-    /* Double-down sideways card */
     .playing-card.doubled-card {
       transform: rotate(-90deg) translateY(-8px);
       margin-left: -10px;
@@ -231,6 +230,49 @@
       animation: riffleRight 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
 
+    /* Outcome Animations (Win, Lose, Push, Out of Money) */
+    @keyframes tableShake {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      15% { transform: translate(-8px, -4px) rotate(-0.8deg); }
+      30% { transform: translate(8px, 4px) rotate(0.8deg); }
+      45% { transform: translate(-6px, 3px) rotate(-0.5deg); }
+      60% { transform: translate(6px, -3px) rotate(0.5deg); }
+      75% { transform: translate(-3px, 2px) rotate(-0.2deg); }
+    }
+
+    .animate-table-shake {
+      animation: tableShake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes outcomeBadgePop {
+      0% { transform: scale(0.35) translateY(30px); opacity: 0; }
+      60% { transform: scale(1.08) translateY(-6px); opacity: 1; }
+      80% { transform: scale(0.97) translateY(2px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .outcome-card-pop {
+      animation: outcomeBadgePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes pulseRingExpand {
+      0% { transform: scale(0.5); opacity: 0.9; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+
+    .pulse-ring-anim {
+      animation: pulseRingExpand 1.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    }
+
+    @keyframes bankruptSiren {
+      0%, 100% { box-shadow: inset 0 0 90px rgba(220, 38, 38, 0.75); }
+      50% { box-shadow: inset 0 0 35px rgba(245, 158, 11, 0.55); }
+    }
+
+    .bankrupt-vignette {
+      animation: bankruptSiren 0.75s ease-in-out infinite;
+    }
+
     /* Active Split Hand Highlight */
     .hand-box {
       transition: all 0.3s ease;
@@ -278,6 +320,12 @@
       cursor: not-allowed;
       transform: none;
     }
+
+    /* 3D Dealer Stage Styling */
+    .dealer-3d-stage {
+      background: radial-gradient(circle at 50% 60%, rgba(212, 175, 55, 0.18) 0%, rgba(10, 35, 20, 0.65) 65%, transparent 100%);
+      border-bottom: 1.5px solid rgba(212, 175, 55, 0.35);
+    }
   </style>
 </head>
 <body class="selection:bg-amber-500 selection:text-black">
@@ -300,29 +348,38 @@
             <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
             </svg>
-            <span>CSPRNG Fair Shoe</span>
+            <span data-i18n="fairBadge">CSPRNG โปร่งใส 100%</span>
           </button>
         </div>
-        <p class="text-[11px] text-zinc-400 hidden sm:block">6-Deck Cryptographic Fisher-Yates Blackjack</p>
+        <p data-i18n="headerSubtitle" class="text-[11px] text-zinc-400 hidden sm:block">แบล็คแจ็คคาสิโน 6 สำรับ พร้อมดีลเลอร์ 3D อัจฉริยะ</p>
       </div>
     </div>
 
-    <!-- Header Controls & Download Button -->
+    <!-- Header Controls (Language Switcher, Shuffle, Reset, Sound) -->
     <div class="flex items-center gap-2">
+      <!-- Language Toggle Button (TH / EN) -->
+      <button id="btn-lang-toggle" type="button" class="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-400/40 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm" title="Switch Language (ภาษาไทย / English)">
+        <svg class="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+        </svg>
+        <span id="lang-label-text">TH / EN</span>
+      </button>
+
       <!-- Manual Shuffle Button -->
-      <button id="btn-shuffle-deck" type="button" class="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed" title="Riffle Shuffle Shoe">
+      <button id="btn-shuffle-deck" type="button" class="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed">
         <svg class="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
         </svg>
-        <span class="hidden sm:inline">Shuffle Shoe</span>
+        <span data-i18n="shuffleBtn" class="hidden sm:inline">สับไพ่ใหม่</span>
       </button>
 
       <!-- Reset Bankroll Button -->
-      <button id="btn-reset-bankroll" type="button" class="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed" title="Reset Bankroll to $2,500">
+      <button id="btn-reset-bankroll" type="button" class="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed">
         <svg class="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
         </svg>
-        <span class="hidden sm:inline">Reset Funds</span>
+        <span data-i18n="resetFundsBtn" class="hidden sm:inline">รีเซ็ตทุน</span>
       </button>
 
       <!-- Sound Toggle Button -->
@@ -334,14 +391,6 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/>
         </svg>
       </button>
-
-      <!-- Download index.html Button -->
-      <button id="btn-download-html" type="button" class="px-3 py-1.5 rounded-lg btn-gold font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer">
-        <svg class="w-4 h-4 text-zinc-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
-        </svg>
-        <span>Download index.html</span>
-      </button>
     </div>
   </header>
 
@@ -349,16 +398,18 @@
   <main class="flex-1 flex flex-col items-center justify-between p-2 sm:p-4 max-w-6xl w-full mx-auto gap-2.5">
 
     <!-- Felt Table with Wood Rail -->
-    <div class="casino-rail w-full flex-1 rounded-[28px] sm:rounded-[44px] p-2 sm:p-4 flex flex-col min-h-[470px] sm:min-h-[540px] relative">
-      <div id="casino-table-felt" class="casino-felt w-full flex-1 rounded-[22px] sm:rounded-[36px] flex flex-col justify-between p-3 sm:p-6 relative">
+    <div id="casino-rail-frame" class="casino-rail w-full flex-1 rounded-[28px] sm:rounded-[44px] p-2 sm:p-4 flex flex-col min-h-[500px] sm:min-h-[570px] relative">
+      <div id="casino-table-felt" class="casino-felt w-full flex-1 rounded-[22px] sm:rounded-[36px] flex flex-col justify-between p-3 sm:p-5 relative">
+
+        <!-- PARTICLE CANVAS FOR WIN COINS / CONFETTI / RELOAD CHIPS -->
+        <canvas id="fx-particle-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-30"></canvas>
 
         <!-- TABLE FELT PRINTED SVG MARKINGS -->
         <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid slice">
           <defs>
-            <!-- Curved paths for traditional casino felt lettering -->
-            <path id="arc-blackjack" d="M 210,210 A 340,190 0 0,0 790,210" />
-            <path id="arc-dealer-rules" d="M 175,248 A 380,215 0 0,0 825,248" />
-            <path id="arc-insurance" d="M 250,285 A 310,175 0 0,0 750,285" />
+            <path id="arc-blackjack" d="M 210,250 A 340,190 0 0,0 790,250" />
+            <path id="arc-dealer-rules" d="M 175,286 A 380,215 0 0,0 825,286" />
+            <path id="arc-insurance" d="M 250,322 A 310,175 0 0,0 750,322" />
           </defs>
 
           <!-- Outer decorative golden table boundary -->
@@ -366,146 +417,161 @@
           <rect x="32" y="28" width="936" height="564" rx="28" fill="none" stroke="rgba(212,175,55,0.08)" stroke-width="1" stroke-dasharray="8 6" />
 
           <!-- Decorative Insurance Ribbon Arc -->
-          <path d="M 210,262 A 345,195 0 0,0 790,262" fill="none" stroke="rgba(212,175,55,0.18)" stroke-width="26" stroke-linecap="round" />
-          <path d="M 210,262 A 345,195 0 0,0 790,262" fill="none" stroke="rgba(212,175,55,0.35)" stroke-width="1.5" stroke-dasharray="4 4" />
+          <path d="M 210,300 A 345,195 0 0,0 790,300" fill="none" stroke="rgba(212,175,55,0.16)" stroke-width="24" stroke-linecap="round" />
+          <path d="M 210,300 A 345,195 0 0,0 790,300" fill="none" stroke="rgba(212,175,55,0.32)" stroke-width="1.5" stroke-dasharray="4 4" />
 
           <!-- Curved Text Markings -->
-          <text fill="rgba(249, 226, 156, 0.72)" font-family="Cinzel, serif" font-size="22" font-weight="800" letter-spacing="5">
-            <textPath href="#arc-blackjack" startOffset="50%" text-anchor="middle">BLACKJACK PAYS 3 TO 2</textPath>
+          <text fill="rgba(249, 226, 156, 0.72)" font-family="Cinzel, Prompt, serif" font-size="20" font-weight="800" letter-spacing="4">
+            <textPath id="svg-arc-bj-text" href="#arc-blackjack" startOffset="50%" text-anchor="middle">BLACKJACK PAYS 3 TO 2</textPath>
           </text>
 
-          <text fill="rgba(255, 255, 255, 0.42)" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" letter-spacing="2.6">
-            <textPath href="#arc-dealer-rules" startOffset="50%" text-anchor="middle">DEALER MUST STAND ON ALL 17s AND DRAW TO 16</textPath>
+          <text fill="rgba(255, 255, 255, 0.42)" font-family="Inter, Prompt, sans-serif" font-size="11" font-weight="700" letter-spacing="2.2">
+            <textPath id="svg-arc-rules-text" href="#arc-dealer-rules" startOffset="50%" text-anchor="middle">DEALER MUST STAND ON ALL 17s AND DRAW TO 16</textPath>
           </text>
 
-          <text fill="rgba(249, 226, 156, 0.65)" font-family="Cinzel, serif" font-size="13" font-weight="700" letter-spacing="4">
-            <textPath href="#arc-insurance" startOffset="50%" text-anchor="middle">INSURANCE PAYS 2 TO 1</textPath>
+          <text fill="rgba(249, 226, 156, 0.65)" font-family="Cinzel, Prompt, serif" font-size="12.5" font-weight="700" letter-spacing="3.5">
+            <textPath id="svg-arc-ins-text" href="#arc-insurance" startOffset="50%" text-anchor="middle">INSURANCE PAYS 2 TO 1</textPath>
           </text>
-
-          <!-- Center Table Emblem Watermark -->
-          <g transform="translate(500, 155)" opacity="0.14">
-            <polygon points="0,-32 28,0 0,32 -28,0" fill="none" stroke="#d4af37" stroke-width="2"/>
-            <polygon points="0,-22 19,0 0,22 -19,0" fill="#d4af37"/>
-          </g>
         </svg>
 
-        <!-- TOP ROW: DISCARD TRAY (LEFT) + DEALER HAND (CENTER) + CARD SHOE (RIGHT) -->
+        <!-- TOP ROW: DISCARD TRAY (LEFT) + 3D DEALER & DEALER HAND (CENTER) + CARD SHOE (RIGHT) -->
         <div class="relative z-10 grid grid-cols-12 items-start gap-2">
 
           <!-- LEFT: VISUAL DISCARD TRAY -->
           <div class="col-span-3 sm:col-span-3 flex flex-col items-start">
-            <div id="discard-tray-anchor" class="relative w-16 h-24 sm:w-20 sm:h-28 rounded-lg bg-zinc-950/60 border-2 border-amber-400/35 shadow-inner flex items-end justify-center p-1.5 overflow-hidden">
-              <!-- Acrylic front lip reflection -->
+            <div id="discard-tray-anchor" class="relative w-16 h-24 sm:w-20 sm:h-28 rounded-lg bg-zinc-950/65 border-2 border-amber-400/40 shadow-inner flex items-end justify-center p-1.5 overflow-hidden transition-transform duration-300">
               <div class="absolute inset-x-0 top-0 h-3 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
-              <!-- Visual stack of discarded cards -->
               <div id="discard-visual-stack" class="w-full h-full relative flex items-end justify-center"></div>
-              <div class="absolute bottom-1 inset-x-1 bg-zinc-950/85 rounded px-1 py-0.5 text-center border border-white/10">
-                <span class="block text-[9px] uppercase tracking-wider text-zinc-400">Discard</span>
+              <div class="absolute bottom-1 inset-x-1 bg-zinc-950/90 rounded px-1 py-0.5 text-center border border-white/10">
+                <span data-i18n="discardLabel" class="block text-[9px] uppercase tracking-wider text-zinc-400">ถาดทิ้งไพ่</span>
                 <span id="discard-count-label" class="font-mono-num text-[11px] font-bold text-amber-300">0</span>
               </div>
             </div>
           </div>
 
-          <!-- CENTER: DEALER AREA -->
+          <!-- CENTER: 3D CROUPIER CHARACTER & DEALER CARDS -->
           <div class="col-span-6 sm:col-span-6 flex flex-col items-center">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="font-serif-casino text-xs sm:text-sm tracking-widest text-amber-200/90 font-bold uppercase">Dealer</span>
+            <!-- 3D Dealer Viewport + Speech Bubble -->
+            <div class="relative flex flex-col items-center mb-1">
+              <div id="dealer-3d-container" class="dealer-3d-stage relative w-40 h-28 sm:w-52 sm:h-36 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner cursor-grab active:cursor-grabbing" title="3D Casino Croupier (Drag to rotate view)">
+                <!-- Three.js Canvas mounts here -->
+              </div>
+              <!-- Dealer Live Speech Bubble -->
+              <div id="dealer-speech-bubble" class=" -mt-2 px-3 py-0.5 rounded-full bg-zinc-950/95 border border-amber-400/50 text-[11px] sm:text-xs text-amber-200 font-medium shadow-lg z-20 transition-all duration-300 text-center max-w-[240px] sm:max-w-xs truncate">
+                ยินดีต้อนรับสู่โต๊ะ Royal Monte Carlo ครับ
+              </div>
+            </div>
+
+            <!-- Dealer Score & Hand Label -->
+            <div class="flex items-center gap-2 mt-1 mb-1">
+              <span data-i18n="dealerLabel" class="font-serif-casino text-xs sm:text-sm tracking-widest text-amber-200/90 font-bold uppercase">ดีลเลอร์ (เจ้ามือ)</span>
               <span id="dealer-score-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono-num font-bold bg-zinc-950/85 text-amber-300 border border-amber-500/40 shadow hidden">0</span>
             </div>
+
             <!-- Dealer Card Hand Container -->
-            <div id="dealer-cards-container" class="min-h-[108px] sm:min-h-[140px] flex items-center justify-center py-1"></div>
+            <div id="dealer-cards-container" class="min-h-[100px] sm:min-h-[130px] flex items-center justify-center py-0.5"></div>
           </div>
 
           <!-- RIGHT: VISUAL CARD SHOE WITH CUT CARD -->
           <div class="col-span-3 sm:col-span-3 flex flex-col items-end">
             <div id="shoe-anchor" class="relative w-18 sm:w-24 h-24 sm:h-28 rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border-2 border-amber-500/45 shadow-2xl p-2 flex flex-col justify-between overflow-hidden">
-              <!-- Visual Shoe Deck Bar & Cut Card -->
               <div class="flex items-center justify-between gap-1">
-                <span class="text-[9px] font-bold tracking-wider uppercase text-amber-400">6-Deck Shoe</span>
+                <span data-i18n="shoeLabel" class="text-[9px] font-bold tracking-wider uppercase text-amber-400">ขอนไพ่ 6 สำรับ</span>
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Cryptographic RNG Active"></span>
               </div>
 
-              <!-- 3D angled card stack inside shoe -->
               <div class="relative w-full h-11 bg-zinc-900/90 rounded border border-white/10 overflow-hidden p-1 flex items-center">
-                <!-- Remaining cards bar -->
                 <div id="shoe-fill-bar" class="h-full bg-gradient-to-r from-red-800 via-red-700 to-red-600 rounded-sm border-r-2 border-white transition-all duration-300" style="width: 100%;"></div>
-                <!-- Cut Card Marker at 25% remaining -->
                 <div class="absolute top-0 bottom-0 left-[25%] w-1 bg-amber-300 shadow-[0_0_6px_#fde047]" title="Cut Card Position"></div>
               </div>
 
               <div class="flex items-center justify-between text-[10px] font-mono-num">
-                <span class="text-zinc-400">Cards:</span>
+                <span data-i18n="cardsCountLabel" class="text-zinc-400">ไพ่:</span>
                 <span id="shoe-count-label" class="font-bold text-white">312/312</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- MIDDLE STATUS BANNER / INSURANCE PROMPT / SHUFFLE ANIMATION STAGE -->
-        <div class="relative z-20 my-1 flex flex-col items-center justify-center min-h-[48px]">
+        <!-- MIDDLE STATUS BANNER / INSURANCE PROMPT / SHUFFLE & OUTCOME ANIMATION STAGE -->
+        <div class="relative z-20 my-1 flex flex-col items-center justify-center min-h-[44px]">
 
           <!-- Status Banner Pill -->
-          <div id="table-status-banner" class="px-4 py-1.5 rounded-full bg-zinc-950/85 border border-amber-400/40 text-amber-200 text-xs sm:text-sm font-semibold tracking-wide shadow-xl transition-all duration-300">
-            Select chips below to place your bet
+          <div id="table-status-banner" class="px-4 py-1.5 rounded-full bg-zinc-950/85 border border-amber-400/40 text-amber-200 text-xs sm:text-sm font-semibold tracking-wide shadow-xl transition-all duration-300 text-center">
+            เลือกชิปด้านล่างเพื่อวางเดิมพัน
           </div>
 
           <!-- Insurance Decision Bar (Hidden unless Dealer shows Ace) -->
           <div id="insurance-prompt-bar" class="hidden mt-2 px-4 py-2 rounded-xl bg-zinc-950/95 border border-amber-400/60 shadow-2xl flex flex-wrap items-center justify-center gap-3">
-            <span class="text-xs sm:text-sm font-medium text-amber-200">Dealer shows an Ace. Take Insurance (Pays 2:1)?</span>
+            <span data-i18n="insurancePrompt" class="text-xs sm:text-sm font-medium text-amber-200">เจ้ามือหงายไพ่ A ต้องการซื้อประกัน (Insurance จ่าย 2:1) หรือไม่?</span>
             <div class="flex items-center gap-2">
-              <button id="btn-insure-yes" type="button" class="px-3 py-1 rounded-lg btn-gold text-xs font-bold">Buy Insurance</button>
-              <button id="btn-insure-no" type="button" class="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-600 text-xs font-semibold">No Insurance</button>
+              <button id="btn-insure-yes" type="button" class="px-3 py-1 rounded-lg btn-gold text-xs font-bold">ซื้อประกัน</button>
+              <button id="btn-insure-no" type="button" class="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-600 text-xs font-semibold">ไม่ซื้อ</button>
             </div>
           </div>
 
           <!-- Riffle Shuffle Animation Overlay -->
           <div id="shuffle-overlay" class="hidden absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-40">
-            <div class="px-6 py-4 rounded-2xl bg-zinc-950/90 border border-amber-500/50 shadow-2xl flex flex-col items-center gap-3">
+            <div class="px-6 py-4 rounded-2xl bg-zinc-950/95 border border-amber-500/50 shadow-2xl flex flex-col items-center gap-3">
               <div id="shuffle-cards-stage" class="relative w-44 h-28 flex items-center justify-center"></div>
               <div class="flex items-center gap-2 text-amber-300 font-serif-casino text-xs sm:text-sm tracking-widest uppercase">
                 <svg class="w-4 h-4 animate-spin text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
-                <span>Cryptographic Riffle Shuffle...</span>
+                <span data-i18n="shufflingOverlayText">กำลังสับไพ่ด้วยระบบ Cryptographic...</span>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- DRAMATIC OUTCOME ANIMATION OVERLAY (WIN / LOSE / PUSH / OUT OF MONEY) -->
+        <div id="outcome-fx-overlay" class="hidden absolute inset-0 z-40 pointer-events-none flex items-center justify-center p-4">
+          <div id="outcome-fx-card" class="outcome-card-pop relative px-7 py-5 rounded-3xl border-2 shadow-2xl flex flex-col items-center text-center max-w-md w-full backdrop-blur-md">
+            <!-- Expanding shockwave ring behind badge -->
+            <div id="outcome-fx-ring" class="pulse-ring-anim absolute inset-0 rounded-3xl border-2 pointer-events-none"></div>
+            <!-- Dynamic SVG Icon -->
+            <div id="outcome-fx-icon" class="w-16 h-16 mb-2 flex items-center justify-center rounded-2xl shadow-lg"></div>
+            <!-- Main Title -->
+            <h3 id="outcome-fx-title" class="font-serif-casino text-2xl sm:text-3xl font-extrabold tracking-wider uppercase drop-shadow"></h3>
+            <!-- Subtitle / Payout Details -->
+            <p id="outcome-fx-subtitle" class="text-xs sm:text-sm font-semibold mt-1"></p>
+          </div>
+        </div>
+
         <!-- BOTTOM FELT AREA: PLAYER HANDS + BETTING CIRCLE -->
-        <div class="relative z-10 flex flex-col items-center justify-end gap-2">
+        <div class="relative z-10 flex flex-col items-center justify-end gap-1.5">
 
           <!-- Player Hands Wrapper (1 Hand normally, 2 Hands side-by-side when Split) -->
-          <div id="player-hands-wrapper" class="w-full flex flex-wrap items-center justify-center gap-4 sm:gap-8 min-h-[135px] sm:min-h-[160px]">
+          <div id="player-hands-wrapper" class="w-full flex flex-wrap items-center justify-center gap-4 sm:gap-8 min-h-[125px] sm:min-h-[148px]">
             <!-- Hand 0 (Primary Hand) -->
-            <div id="player-hand-box-0" class="hand-box rounded-2xl px-3 py-2 flex flex-col items-center relative">
-              <div class="flex items-center gap-2 mb-1.5">
-                <span id="player-hand-title-0" class="text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">Player Hand</span>
+            <div id="player-hand-box-0" class="hand-box rounded-2xl px-3 py-1.5 flex flex-col items-center relative">
+              <div class="flex items-center gap-2 mb-1">
+                <span id="player-hand-title-0" data-i18n="playerHandTitle" class="text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">ไพ่ผู้เล่น</span>
                 <span id="player-score-badge-0" class="px-2.5 py-0.5 rounded-full text-xs font-mono-num font-bold bg-zinc-950/90 text-white border border-white/20 shadow hidden">0</span>
                 <span id="player-outcome-badge-0" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider hidden"></span>
               </div>
-              <div id="player-cards-container-0" class="min-h-[105px] sm:min-h-[136px] flex items-center justify-center py-0.5"></div>
+              <div id="player-cards-container-0" class="min-h-[100px] sm:min-h-[130px] flex items-center justify-center py-0.5"></div>
             </div>
 
             <!-- Hand 1 (Split Hand, Hidden by Default) -->
-            <div id="player-hand-box-1" class="hand-box rounded-2xl px-3 py-2 flex flex-col items-center relative hidden">
-              <div class="flex items-center gap-2 mb-1.5">
-                <span id="player-hand-title-1" class="text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">Split Hand 2</span>
+            <div id="player-hand-box-1" class="hand-box rounded-2xl px-3 py-1.5 flex flex-col items-center relative hidden">
+              <div class="flex items-center gap-2 mb-1">
+                <span id="player-hand-title-1" data-i18n="splitHand2Title" class="text-[11px] font-bold uppercase tracking-wider text-emerald-200/80">ขาที่ 2 (แยกไพ่)</span>
                 <span id="player-score-badge-1" class="px-2.5 py-0.5 rounded-full text-xs font-mono-num font-bold bg-zinc-950/90 text-white border border-white/20 shadow hidden">0</span>
                 <span id="player-outcome-badge-1" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider hidden"></span>
               </div>
-              <div id="player-cards-container-1" class="min-h-[105px] sm:min-h-[136px] flex items-center justify-center py-0.5"></div>
+              <div id="player-cards-container-1" class="min-h-[100px] sm:min-h-[130px] flex items-center justify-center py-0.5"></div>
             </div>
           </div>
 
           <!-- BETTING CIRCLE & 3D STACKED CHIPS -->
-          <div class="flex items-center justify-center gap-6 mt-0.5">
-            <div id="betting-circle-anchor" class="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
+          <div class="flex items-center justify-center gap-6">
+            <div id="betting-circle-anchor" class="relative w-22 h-22 sm:w-24 sm:h-24 flex items-center justify-center">
               <!-- Ornate Golden SVG Betting Ring -->
-              <svg id="betting-circle-svg" class="betting-circle-ring w-full h-full active-bet-target" viewBox="0 0 120 120">
+              <svg id="betting-circle-svg" class="betting-circle-ring w-20 h-20 sm:w-24 sm:h-24 active-bet-target" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="52" fill="rgba(0,0,0,0.22)" stroke="#d4af37" stroke-width="2.5" />
                 <circle cx="60" cy="60" r="45" fill="none" stroke="rgba(249,226,156,0.45)" stroke-width="1.2" stroke-dasharray="6 4" />
-                <text x="60" y="96" text-anchor="middle" fill="rgba(249,226,156,0.5)" font-family="Cinzel, serif" font-size="8.5" font-weight="700" letter-spacing="1.5">BET</text>
+                <text x="60" y="96" text-anchor="middle" fill="rgba(249,226,156,0.55)" font-family="Cinzel, Prompt, serif" font-size="8.5" font-weight="700" letter-spacing="1.5">BET</text>
               </svg>
 
               <!-- 3D Chip Stack Container -->
@@ -529,17 +595,17 @@
       <!-- Left: Player Bankroll & Wager Stats -->
       <div class="lg:col-span-3 flex items-center justify-around lg:justify-start gap-4 bg-zinc-900/80 border border-zinc-800 rounded-xl px-3.5 py-2.5">
         <div>
-          <span class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Bankroll</span>
+          <span data-i18n="bankrollLabel" class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">เงินทุนคงเหลือ</span>
           <span id="bankroll-display" class="font-mono-num text-lg sm:text-xl font-bold text-emerald-400">$2,500</span>
         </div>
         <div class="h-8 w-px bg-zinc-800"></div>
         <div>
-          <span class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Total Wager</span>
+          <span data-i18n="wagerLabel" class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">เดิมพันรวม</span>
           <span id="wager-display" class="font-mono-num text-lg sm:text-xl font-bold text-amber-300">$0</span>
         </div>
         <div class="h-8 w-px bg-zinc-800"></div>
         <div>
-          <span class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Last Payout</span>
+          <span data-i18n="payoutLabel" class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">เงินรางวัลล่าสุด</span>
           <span id="payout-display" class="font-mono-num text-sm sm:text-base font-bold text-zinc-300">$0</span>
         </div>
       </div>
@@ -596,30 +662,30 @@
 
         <!-- Betting Phase Controls -->
         <div id="betting-controls-group" class="flex flex-wrap items-center justify-center gap-2 w-full">
-          <button id="btn-clear-bet" type="button" class="btn-action px-3 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-600 text-xs font-bold uppercase tracking-wider">
-            Clear Bet
+          <button id="btn-clear-bet" type="button" data-i18n="clearBetBtn" class="btn-action px-3 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-600 text-xs font-bold uppercase tracking-wider">
+            ล้างชิป
           </button>
-          <button id="btn-rebet" type="button" class="btn-action px-3 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-300 border border-amber-500/40 text-xs font-bold uppercase tracking-wider">
-            Rebet
+          <button id="btn-rebet" type="button" data-i18n="rebetBtn" class="btn-action px-3 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-300 border border-amber-500/40 text-xs font-bold uppercase tracking-wider">
+            แทงซ้ำ
           </button>
-          <button id="btn-deal" type="button" class="btn-action btn-gold px-6 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold uppercase tracking-wider flex-1 sm:flex-initial">
-            Deal Cards
+          <button id="btn-deal" type="button" data-i18n="dealBtn" class="btn-action btn-gold px-6 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold uppercase tracking-wider flex-1 sm:flex-initial">
+            แจกไพ่
           </button>
         </div>
 
         <!-- Playing Phase Controls (Hit / Stand / Double / Split) -->
         <div id="action-controls-group" class="hidden flex-wrap items-center justify-center gap-2 w-full">
-          <button id="btn-hit" type="button" class="btn-action px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 text-xs sm:text-sm font-extrabold uppercase tracking-wider flex-1">
-            Hit
+          <button id="btn-hit" type="button" data-i18n="hitBtn" class="btn-action px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 text-xs sm:text-sm font-extrabold uppercase tracking-wider flex-1">
+            จั่วไพ่ (Hit)
           </button>
-          <button id="btn-stand" type="button" class="btn-action px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white border border-amber-400/50 text-xs sm:text-sm font-extrabold uppercase tracking-wider flex-1">
-            Stand
+          <button id="btn-stand" type="button" data-i18n="standBtn" class="btn-action px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white border border-amber-400/50 text-xs sm:text-sm font-extrabold uppercase tracking-wider flex-1">
+            อยู่ (Stand)
           </button>
-          <button id="btn-double" type="button" class="btn-action px-3.5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white border border-sky-400/50 text-xs font-bold uppercase tracking-wider">
-            Double
+          <button id="btn-double" type="button" data-i18n="doubleBtn" class="btn-action px-3.5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white border border-sky-400/50 text-xs font-bold uppercase tracking-wider">
+            แทงสองเท่า (2x)
           </button>
-          <button id="btn-split" type="button" class="btn-action px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/50 text-xs font-bold uppercase tracking-wider">
-            Split
+          <button id="btn-split" type="button" data-i18n="splitBtn" class="btn-action px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/50 text-xs font-bold uppercase tracking-wider">
+            แยกไพ่ (Split)
           </button>
         </div>
 
@@ -635,7 +701,7 @@
           <svg class="w-5 h-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
           </svg>
-          <h2 class="font-serif-casino text-base font-bold text-amber-300">Cryptographic Fairness &amp; RNG</h2>
+          <h2 data-i18n="modalTitle" class="font-serif-casino text-base font-bold text-amber-300">ความโปร่งใสและการสับไพ่ Cryptographic RNG</h2>
         </div>
         <button id="btn-close-rng-modal" type="button" class="p-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -644,18 +710,18 @@
         </button>
       </div>
       <div class="space-y-3 text-xs text-zinc-300 leading-relaxed">
-        <p>
-          This Blackjack table uses an unrigged 6-deck casino shoe (312 cards) shuffled via the <strong class="text-white">Fisher-Yates algorithm</strong> driven by <code class="text-emerald-300 bg-zinc-900 px-1 py-0.5 rounded">window.crypto.getRandomValues()</code> with rejection sampling to eliminate modulo bias.
+        <p data-i18n="modalDesc1">
+          โต๊ะแบล็คแจ็คนี้ใช้ขอนไพ่คาสิโนมาตรฐาน 6 สำรับ (312 ใบ) สับไพ่ด้วยอัลกอริทึม Fisher-Yates โดยใช้ค่าสุ่มระดับฮาร์ดแวร์จาก window.crypto.getRandomValues() ที่ปราศจากการล็อกผล 100%
         </p>
-        <p>
-          Once shuffled, the shoe order is locked in memory and dealt strictly from the top card down. A cut card is placed at 75% penetration (78 cards remaining), triggering an automatic reshuffle between rounds.
+        <p data-i18n="modalDesc2">
+          เมื่อสับไพ่เสร็จ ลำดับไพ่ทั้งขอนจะถูกล็อกไว้และแจกจากใบบนสุดลงมาตามจริง และจะสับไพ่ใหม่อัตโนมัติเมื่อถึงไพ่ตัดขอน (Cut Card ที่เหลือ 78 ใบ)
         </p>
         <div class="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 font-mono-num text-[11px] space-y-1">
-          <div class="flex justify-between"><span class="text-zinc-400">Shuffle Count:</span><span id="modal-shuffle-count" class="text-amber-300">1</span></div>
-          <div class="flex justify-between"><span class="text-zinc-400">Shoe Remaining:</span><span id="modal-shoe-remaining" class="text-emerald-400">312 / 312</span></div>
-          <div class="flex justify-between"><span class="text-zinc-400">Cut Card Threshold:</span><span class="text-zinc-200">78 cards</span></div>
+          <div class="flex justify-between"><span data-i18n="modalShuffleCountLabel" class="text-zinc-400">จำนวนครั้งที่สับไพ่:</span><span id="modal-shuffle-count" class="text-amber-300">1</span></div>
+          <div class="flex justify-between"><span data-i18n="modalShoeRemainingLabel" class="text-zinc-400">ไพ่คงเหลือในขอน:</span><span id="modal-shoe-remaining" class="text-emerald-400">312 / 312</span></div>
+          <div class="flex justify-between"><span data-i18n="modalCutCardLabel" class="text-zinc-400">ตำแหน่งไพ่ตัดขอน (Cut Card):</span><span class="text-zinc-200">78</span></div>
           <div class="pt-1 border-t border-zinc-800">
-            <span class="text-zinc-400 block mb-1">Last Shuffle Entropy Seed (Hex):</span>
+            <span data-i18n="modalSeedLabel" class="text-zinc-400 block mb-1">รหัส Entropy Seed ล่าสุด (Hex):</span>
             <span id="modal-shuffle-seed" class="text-emerald-300 break-all">---</span>
           </div>
         </div>
@@ -668,12 +734,178 @@
     (function () {
       "use strict";
 
-      // Capture the clean, unmodified HTML document source immediately on load
-      // so the "Download index.html" button exports a pristine standalone file.
-      const CLEAN_HTML_SOURCE = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      /* =========================================================================
+       * 1. BILINGUAL I18N DICTIONARY (THAI & ENGLISH)
+       * ========================================================================= */
+      const I18N = {
+        th: {
+          fairBadge: "CSPRNG โปร่งใส 100%",
+          headerSubtitle: "แบล็คแจ็คคาสิโน 6 สำรับ พร้อมดีลเลอร์ 3D อัจฉริยะ",
+          shuffleBtn: "สับไพ่ใหม่",
+          resetFundsBtn: "รีเซ็ตทุน",
+          discardLabel: "ถาดทิ้งไพ่",
+          dealerLabel: "ดีลเลอร์ (เจ้ามือ)",
+          shoeLabel: "ขอนไพ่ 6 สำรับ",
+          cardsCountLabel: "ไพ่:",
+          insurancePrompt: "เจ้ามือหงายไพ่ A ต้องการซื้อประกัน (Insurance จ่าย 2:1) หรือไม่?",
+          buyInsuranceBtn: "ซื้อประกัน",
+          noInsuranceBtn: "ไม่ซื้อ",
+          shufflingOverlayText: "กำลังสับไพ่ด้วยระบบ Cryptographic...",
+          playerHandTitle: "ไพ่ผู้เล่น",
+          splitHand1Title: "ขาที่ 1",
+          splitHand2Title: "ขาที่ 2",
+          bankrollLabel: "เงินทุนคงเหลือ",
+          wagerLabel: "เดิมพันรวม",
+          payoutLabel: "เงินรางวัลล่าสุด",
+          clearBetBtn: "ล้างชิป",
+          rebetBtn: "แทงซ้ำ",
+          dealBtn: "แจกไพ่",
+          hitBtn: "จั่วไพ่ (Hit)",
+          standBtn: "อยู่ (Stand)",
+          doubleBtn: "สองเท่า (2x)",
+          splitBtn: "แยกไพ่ (Split)",
+          modalTitle: "ความโปร่งใสและการสับไพ่ Cryptographic RNG",
+          modalDesc1: "โต๊ะแบล็คแจ็คนี้ใช้ขอนไพ่คาสิโนมาตรฐาน 6 สำรับ (312 ใบ) สับไพ่ด้วยอัลกอริทึม Fisher-Yates โดยใช้ค่าสุ่มระดับฮาร์ดแวร์จาก window.crypto.getRandomValues() ที่ปราศจากการล็อกผล 100%",
+          modalDesc2: "เมื่อสับไพ่เสร็จ ลำดับไพ่ทั้งขอนจะถูกล็อกไว้และแจกจากใบบนสุดลงมาตามจริง และจะสับไพ่ใหม่อัตโนมัติเมื่อถึงไพ่ตัดขอน (Cut Card ที่เหลือ 78 ใบ)",
+          modalShuffleCountLabel: "จำนวนครั้งที่สับไพ่:",
+          modalShoeRemainingLabel: "ไพ่คงเหลือในขอน:",
+          modalCutCardLabel: "ตำแหน่งไพ่ตัดขอน (Cut Card):",
+          modalSeedLabel: "รหัส Entropy Seed ล่าสุด (Hex):",
+          arcBlackjack: "BLACKJACK จ่าย 3 ต่อ 2",
+          arcDealerRules: "เจ้ามือต้องอยู่ที่ 17 แต้ม และจั่วเมื่อได้ 16 หรือต่ำกว่า",
+          arcInsurance: "INSURANCE จ่าย 2 ต่อ 1",
+          // Status & Gameplay Messages
+          msgPlaceBet: "เลือกชิปด้านล่างเพื่อวางเดิมพันในรอบต่อไป",
+          msgShuffledPlaceBet: "สับไพ่เสร็จสมบูรณ์ — เลือกชิปเพื่อวางเดิมพันได้เลย",
+          msgBetCleared: "ล้างชิปเดิมพันแล้ว — เลือกชิปเพื่อวางเดิมพันใหม่",
+          msgRebetPlaced: (amt) => `วางเดิมพันซ้ำ ${amt} เรียบร้อย — กดแจกไพ่ได้เลย`,
+          msgCutCardReached: "ถึงไพ่ตัดขอน — กำลังสับไพ่ใหม่ทั้ง 6 สำรับ...",
+          msgDealing: "ดีลเลอร์กำลังแจกไพ่...",
+          msgInsuranceAvail: "เจ้ามือหงายไพ่ A — สามารถเลือกซื้อประกันได้",
+          msgYourTurn: "ตาของคุณ — เลือก จั่วไพ่, อยู่, แทงสองเท่า หรือ แยกไพ่",
+          msgDoubledDown: "แทงสองเท่า (Double Down) — จั่วไพ่ใบสุดท้าย 1 ใบ...",
+          msgPairsSplit: "แยกไพ่คู่ (Split) — กำลังแจกไพ่ใบที่สองให้แต่ละขา...",
+          msgPlayingSplitHand: (n) => `กำลังเล่นไพ่ขาที่ ${n}`,
+          msgDealerDraws: "เจ้ามือกำลังจั่วไพ่ตามกติกาคาสิโน...",
+          msgSweepingCards: "ดีลเลอร์กำลังเก็บกวาดไพ่ลงถาดทิ้งไพ่...",
+          msgBankrollReset: "รีเซ็ตเงินทุนเป็น $2,500 เรียบร้อย — เชิญวางเดิมพัน",
+          msgBankruptReload: "เงินทุนหมดหน้าตัก! คาสิโนมอบทุน VIP ขวัญถุง $2,500 ให้ใหม่!",
+          // Outcome Titles & Badges
+          badgeBust: "แต้มเกิน (BUST)",
+          badgeBlackjack: "แบล็คแจ็ค 3:2",
+          badgeDealerBJ: "เจ้ามือแบล็คแจ็ค",
+          badgeWin: "ชนะ (WIN)",
+          badgeLose: "แพ้ (LOSE)",
+          badgePush: "เสมอ (PUSH)",
+          fxBlackjackTitle: "BLACKJACK! ชนะ 3 ต่อ 2",
+          fxWinTitle: "ยินดีด้วย! คุณชนะ!",
+          fxLoseTitle: "เจ้ามือชนะในรอบนี้",
+          fxBustTitle: "แต้มเกิน 21! (BUST)",
+          fxPushTitle: "แต้มเสมอกัน! (PUSH)",
+          fxBankruptTitle: "เงินหมดหน้าตัก! (OUT OF FUNDS)",
+          fxBankruptSub: "ไม่ต้องกังวล! คาสิโนเติมชิป VIP ขวัญถุง +$2,500 ให้คุณแล้ว",
+          // Dealer Speech Lines
+          dealerSpeechIdle: "เชิญวางชิปเดิมพันได้เลยครับ ขอให้โชคดี!",
+          dealerSpeechShuffling: "กำลังสับไพ่ 6 สำรับด้วยระบบสุ่มแท้ครับ...",
+          dealerSpeechDealing: "แจกไพ่ครับ ขอให้ได้ไพ่สวยๆ!",
+          dealerSpeechTurn: "ต้องการจั่วเพิ่ม หรืออยู่ดีครับ?",
+          dealerSpeechWin: "ยอดเยี่ยมมากครับ! ยินดีด้วยกับชัยชนะ!",
+          dealerSpeechBlackjack: "ว้าว! แบล็คแจ็ค 21 แต้มเต็ม! จ่าย 3 ต่อ 2 ครับ!",
+          dealerSpeechLose: "เสียใจด้วยครับ รอบนี้เจ้ามือแต้มเหนือกว่า!",
+          dealerSpeechPush: "แต้มเท่ากันครับ คืนเงินเดิมพันให้ครบถ้วน!",
+          dealerSpeechBankrupt: "โอ๊ะ! ชิปหมดหน้าตักแล้ว ผมจัดทุน VIP $2,500 ให้ใหม่ครับ!",
+          dealerSpeechSweeping: "ขออนุญาตเก็บไพ่เข้าถาด เพื่อเริ่มรอบต่อไปครับ"
+        },
+        en: {
+          fairBadge: "CSPRNG Fair Shoe",
+          headerSubtitle: "6-Deck Cryptographic Blackjack with 3D Croupier",
+          shuffleBtn: "Shuffle Shoe",
+          resetFundsBtn: "Reset Funds",
+          discardLabel: "Discard",
+          dealerLabel: "Dealer",
+          shoeLabel: "6-Deck Shoe",
+          cardsCountLabel: "Cards:",
+          insurancePrompt: "Dealer shows an Ace. Take Insurance (Pays 2:1)?",
+          buyInsuranceBtn: "Buy Insurance",
+          noInsuranceBtn: "No Insurance",
+          shufflingOverlayText: "Cryptographic Riffle Shuffle...",
+          playerHandTitle: "Player Hand",
+          splitHand1Title: "Split Hand 1",
+          splitHand2Title: "Split Hand 2",
+          bankrollLabel: "Bankroll",
+          wagerLabel: "Total Wager",
+          payoutLabel: "Last Payout",
+          clearBetBtn: "Clear Bet",
+          rebetBtn: "Rebet",
+          dealBtn: "Deal Cards",
+          hitBtn: "Hit",
+          standBtn: "Stand",
+          doubleBtn: "Double (2x)",
+          splitBtn: "Split",
+          modalTitle: "Cryptographic Fairness & RNG",
+          modalDesc1: "This Blackjack table uses an unrigged 6-deck casino shoe (312 cards) shuffled via the Fisher-Yates algorithm driven by window.crypto.getRandomValues() with zero bias.",
+          modalDesc2: "Once shuffled, the shoe order is locked in memory and dealt strictly from the top card down. A cut card at 78 cards triggers an automatic reshuffle.",
+          modalShuffleCountLabel: "Shuffle Count:",
+          modalShoeRemainingLabel: "Shoe Remaining:",
+          modalCutCardLabel: "Cut Card Threshold:",
+          modalSeedLabel: "Last Shuffle Entropy Seed (Hex):",
+          arcBlackjack: "BLACKJACK PAYS 3 TO 2",
+          arcDealerRules: "DEALER MUST STAND ON ALL 17s AND DRAW TO 16",
+          arcInsurance: "INSURANCE PAYS 2 TO 1",
+          // Status & Gameplay Messages
+          msgPlaceBet: "Select chips below to place your bet",
+          msgShuffledPlaceBet: "Shoe cryptographically shuffled — Place your bet",
+          msgBetCleared: "Bet cleared — Select chips to wager",
+          msgRebetPlaced: (amt) => `Rebet ${amt} placed — Ready to deal`,
+          msgCutCardReached: "Cut card reached — Shuffling 6-deck shoe...",
+          msgDealing: "Dealing cards...",
+          msgInsuranceAvail: "Dealer shows an Ace — Insurance available",
+          msgYourTurn: "Your turn — Hit, Stand, Double, or Split",
+          msgDoubledDown: "Doubled Down — Drawing 1 final card...",
+          msgPairsSplit: "Pairs Split — Dealing second card to each hand...",
+          msgPlayingSplitHand: (n) => `Playing Split Hand ${n}`,
+          msgDealerDraws: "Dealer draws to 16, stands on all 17s...",
+          msgSweepingCards: "Sweeping cards to discard tray...",
+          msgBankrollReset: "Bankroll reset to $2,500 — Place your bet",
+          msgBankruptReload: "Out of funds! Complimentary $2,500 VIP house reload applied!",
+          // Outcome Titles & Badges
+          badgeBust: "BUST",
+          badgeBlackjack: "BLACKJACK 3:2",
+          badgeDealerBJ: "DEALER BJ",
+          badgeWin: "WIN",
+          badgeLose: "LOSE",
+          badgePush: "PUSH",
+          fxBlackjackTitle: "BLACKJACK! PAYS 3:2",
+          fxWinTitle: "VICTORY! YOU WIN!",
+          fxLoseTitle: "DEALER WINS",
+          fxBustTitle: "BUSTED OVER 21!",
+          fxPushTitle: "PUSH — TIE HAND",
+          fxBankruptTitle: "OUT OF FUNDS!",
+          fxBankruptSub: "Complimentary +$2,500 VIP House Reload showered onto your stack!",
+          // Dealer Speech Lines
+          dealerSpeechIdle: "Place your chips on the felt. Good luck!",
+          dealerSpeechShuffling: "Riffle shuffling all 6 decks cryptographically...",
+          dealerSpeechDealing: "Cards coming out! Best of luck!",
+          dealerSpeechTurn: "Would you like to Hit or Stand?",
+          dealerSpeechWin: "Well played! Congratulations on your winning hand!",
+          dealerSpeechBlackjack: "Magnificent! Natural 21 Blackjack! Pays 3 to 2!",
+          dealerSpeechLose: "The house takes this round. Better luck next hand!",
+          dealerSpeechPush: "It's a Push! Your wager is returned.",
+          dealerSpeechBankrupt: "Out of chips? Allow me to grant a $2,500 VIP house reload!",
+          dealerSpeechSweeping: "Clearing the table for the next round..."
+        }
+      };
+
+      let currentLang = "th";
+
+      function t(key, ...args) {
+        const entry = I18N[currentLang][key] || I18N.en[key] || key;
+        if (typeof entry === "function") return entry(...args);
+        return entry;
+      }
 
       /* =========================================================================
-       * 1. PURE SVG ARTWORK GENERATORS (SUITS, FACE CARDS, CHIPS - NO EMOJIS)
+       * 2. PURE SVG ARTWORK GENERATORS (SUITS, FACE CARDS, CHIPS)
        * ========================================================================= */
       const SUIT_CONFIG = {
         spades: {
@@ -729,14 +961,14 @@
           const titleMap = { J: "JACK", Q: "QUEEN", K: "KING" };
           return `
             <div class="w-full flex-1 my-0.5 rounded border border-amber-500/50 bg-gradient-to-b from-amber-50/90 to-slate-100 flex flex-col items-center justify-center relative overflow-hidden">
-              <svg class="w-9 h-9 sm:w-11 sm:h-11" viewBox="0 0 48 48">
+              <svg class="w-8 h-8 sm:w-10 sm:h-10" viewBox="0 0 48 48">
                 <polygon points="8,34 6,16 16,24 24,12 32,24 42,16 40,34" fill="#d4af37" stroke="#78350f" stroke-width="1.6" stroke-linejoin="round"/>
                 <rect x="8" y="34" width="32" height="4" rx="1" fill="#78350f"/>
                 <circle cx="16" cy="14" r="2" fill="${cfg.color}"/>
                 <circle cx="24" cy="8" r="2.4" fill="${cfg.color}"/>
                 <circle cx="32" cy="14" r="2" fill="${cfg.color}"/>
               </svg>
-              <div class="w-4 h-4 -mt-1">${createSuitSVG(suit, "w-full h-full")}</div>
+              <div class="w-3.5 h-3.5 -mt-1">${createSuitSVG(suit, "w-full h-full")}</div>
               <span class="text-[7px] font-serif-casino font-bold tracking-widest text-slate-600 mt-0.5">${titleMap[rank]}</span>
             </div>
           `;
@@ -745,14 +977,14 @@
         if (rank === "A") {
           return `
             <div class="w-full flex-1 flex items-center justify-center">
-              <div class="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-sm">${createSuitSVG(suit, "w-full h-full")}</div>
+              <div class="w-9 h-9 sm:w-11 sm:h-11 drop-shadow-sm">${createSuitSVG(suit, "w-full h-full")}</div>
             </div>
           `;
         }
 
         return `
           <div class="w-full flex-1 flex items-center justify-center relative">
-            <div class="w-8 h-8 sm:w-10 sm:h-10 opacity-90">${createSuitSVG(suit, "w-full h-full")}</div>
+            <div class="w-7 h-7 sm:w-9 sm:h-9 opacity-90">${createSuitSVG(suit, "w-full h-full")}</div>
           </div>
         `;
       }
@@ -777,7 +1009,7 @@
       }
 
       /* =========================================================================
-       * 2. SYNTHESIZED WEB AUDIO SOUND ENGINE (NO EXTERNAL AUDIO FILES)
+       * 3. SYNTHESIZED WEB AUDIO SOUND ENGINE
        * ========================================================================= */
       class CasinoSoundEngine {
         constructor() {
@@ -825,7 +1057,7 @@
           if (!this.ctx) return;
 
           const now = this.ctx.currentTime;
-          const bufferSize = this.ctx.sampleRate * 0.07;
+          const bufferSize = this.ctx.sampleRate * 0.065;
           const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
           const data = buffer.getChannelData(0);
           for (let i = 0; i < bufferSize; i++) {
@@ -837,11 +1069,11 @@
 
           const filter = this.ctx.createBiquadFilter();
           filter.type = "bandpass";
-          filter.frequency.setValueAtTime(1300, now);
+          filter.frequency.setValueAtTime(1350, now);
 
           const gain = this.ctx.createGain();
-          gain.gain.setValueAtTime(0.18, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
+          gain.gain.setValueAtTime(0.16, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.065);
 
           noise.connect(filter);
           filter.connect(gain);
@@ -864,19 +1096,40 @@
           this.init();
           if (!this.ctx) return;
 
-          const notes = [523.25, 659.25, 783.99, 1046.5];
+          const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
           notes.forEach((freq, idx) => {
             const now = this.ctx.currentTime + idx * 0.075;
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
             osc.type = "triangle";
             osc.frequency.setValueAtTime(freq, now);
-            gain.gain.setValueAtTime(0.14, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+            gain.gain.setValueAtTime(0.16, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
             osc.start(now);
-            osc.stop(now + 0.29);
+            osc.stop(now + 0.34);
+          });
+        }
+
+        playPushTone() {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+
+          const notes = [440, 554.37];
+          notes.forEach((freq, idx) => {
+            const now = this.ctx.currentTime + idx * 0.11;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.26);
           });
         }
 
@@ -889,21 +1142,497 @@
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = "sawtooth";
-          osc.frequency.setValueAtTime(190, now);
-          osc.frequency.linearRampToValueAtTime(115, now + 0.26);
-          gain.gain.setValueAtTime(0.1, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          osc.frequency.setValueAtTime(195, now);
+          osc.frequency.linearRampToValueAtTime(110, now + 0.32);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start(now);
-          osc.stop(now + 0.29);
+          osc.stop(now + 0.35);
+        }
+
+        playBankruptFanfare() {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+
+          // Dramatic descending trombone notes followed by ascending reload sparkle
+          const sadNotes = [311.13, 293.66, 277.18, 261.63];
+          sadNotes.forEach((freq, idx) => {
+            const now = this.ctx.currentTime + idx * 0.18;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.11, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.18);
+          });
+
+          setTimeout(() => this.playWinChime(), 850);
         }
       }
 
       const sound = new CasinoSoundEngine();
 
       /* =========================================================================
-       * 3. CRYPTOGRAPHIC FISHER-YATES SHOE & RNG ENGINE (ZERO RIGGING)
+       * 4. INTERACTIVE 3D DEALER CHARACTER (THREE.JS CROUPIER)
+       * ========================================================================= */
+      class Dealer3DController {
+        constructor(containerEl) {
+          this.container = containerEl;
+          this.mood = "IDLE"; // IDLE | SHUFFLING | DEALING | WIN | LOSE | PUSH | BANKRUPT
+          this.moodTimer = 0;
+          this.clock = null;
+          this.isDragging = false;
+          this.dragStartX = 0;
+          this.targetRotY = 0;
+          this.initThreeScene();
+        }
+
+        initThreeScene() {
+          if (typeof THREE === "undefined" || !this.container) return;
+
+          const width = this.container.clientWidth || 200;
+          const height = this.container.clientHeight || 140;
+
+          this.scene = new THREE.Scene();
+          this.camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
+          this.camera.position.set(0, 1.35, 4.3);
+          this.camera.lookAt(0, 1.0, 0);
+
+          this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+          this.renderer.setSize(width, height);
+          this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+          this.container.innerHTML = "";
+          this.container.appendChild(this.renderer.domElement);
+
+          // Studio & Casino Golden Rim Lighting
+          const ambientLight = new THREE.AmbientLight(0xffffff, 0.72);
+          this.scene.add(ambientLight);
+
+          const keyLight = new THREE.DirectionalLight(0xfff4d6, 1.15);
+          keyLight.position.set(2.5, 4.5, 4);
+          this.scene.add(keyLight);
+
+          const goldRimLight = new THREE.PointLight(0xd4af37, 1.4, 10);
+          goldRimLight.position.set(-2.5, 2.5, -1.5);
+          this.scene.add(goldRimLight);
+
+          const emeraldBounce = new THREE.PointLight(0x10b981, 0.7, 8);
+          emeraldBounce.position.set(0, -1.5, 2.5);
+          this.scene.add(emeraldBounce);
+
+          // Root Dealer Group
+          this.dealerGroup = new THREE.Group();
+          this.scene.add(this.dealerGroup);
+
+          // Materials
+          const skinMat = new THREE.MeshStandardMaterial({ color: 0xf4c7a5, roughness: 0.45, metalness: 0.05 });
+          const suitMat = new THREE.MeshStandardMaterial({ color: 0x141419, roughness: 0.4, metalness: 0.15 });
+          const vestMat = new THREE.MeshStandardMaterial({ color: 0x881313, roughness: 0.35, metalness: 0.2 });
+          const shirtMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 });
+          const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.85 });
+          const darkEyeMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1 });
+
+          // Torso / Tuxedo Jacket
+          this.torsoGroup = new THREE.Group();
+          this.torsoGroup.position.set(0, 0.38, 0);
+          this.dealerGroup.add(this.torsoGroup);
+
+          const torsoMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.72, 1.15, 24), suitMat);
+          this.torsoGroup.add(torsoMesh);
+
+          // Crimson Brocade Vest & Crisp White Shirt V-Neck
+          const vestMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.62, 1.05, 20), vestMat);
+          vestMesh.position.set(0, 0.02, 0.08);
+          this.torsoGroup.add(vestMesh);
+
+          const shirtMesh = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.75, 4), shirtMat);
+          shirtMesh.rotation.x = Math.PI;
+          shirtMesh.rotation.y = Math.PI / 4;
+          shirtMesh.position.set(0, 0.25, 0.44);
+          this.torsoGroup.add(shirtMesh);
+
+          // Golden Tuxedo Lapels
+          const lapelGeo = new THREE.BoxGeometry(0.14, 0.72, 0.08);
+          const leftLapel = new THREE.Mesh(lapelGeo, goldMat);
+          leftLapel.position.set(-0.22, 0.18, 0.52);
+          leftLapel.rotation.z = -0.22;
+          this.torsoGroup.add(leftLapel);
+
+          const rightLapel = new THREE.Mesh(lapelGeo, goldMat);
+          rightLapel.position.set(0.22, 0.18, 0.52);
+          rightLapel.rotation.z = 0.22;
+          this.torsoGroup.add(rightLapel);
+
+          // Bow Tie (Gold & Crimson)
+          this.bowTieGroup = new THREE.Group();
+          this.bowTieGroup.position.set(0, 0.52, 0.56);
+          const bowLeft = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.22, 12), vestMat);
+          bowLeft.rotation.z = -Math.PI / 2;
+          bowLeft.position.x = -0.09;
+          const bowRight = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.22, 12), vestMat);
+          bowRight.rotation.z = Math.PI / 2;
+          bowRight.position.x = 0.09;
+          const bowCenter = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 12), goldMat);
+          this.bowTieGroup.add(bowLeft, bowRight, bowCenter);
+          this.torsoGroup.add(this.bowTieGroup);
+
+          // Shoulders
+          const shoulderGeo = new THREE.SphereGeometry(0.24, 16, 16);
+          const leftShoulder = new THREE.Mesh(shoulderGeo, suitMat);
+          leftShoulder.position.set(-0.66, 0.42, 0);
+          const rightShoulder = new THREE.Mesh(shoulderGeo, suitMat);
+          rightShoulder.position.set(0.66, 0.42, 0);
+          this.torsoGroup.add(leftShoulder, rightShoulder);
+
+          // Head Group
+          this.headGroup = new THREE.Group();
+          this.headGroup.position.set(0, 1.38, 0.05);
+          this.dealerGroup.add(this.headGroup);
+
+          // Sculpted Head & Neck
+          const neckMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.3, 16), skinMat);
+          neckMesh.position.set(0, -0.36, 0);
+          this.headGroup.add(neckMesh);
+
+          const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.42, 28, 28), skinMat);
+          headMesh.scale.set(0.95, 1.08, 0.95);
+          this.headGroup.add(headMesh);
+
+          // Eyes & Expressive Eyebrows
+          this.leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.052, 14, 14), darkEyeMat);
+          this.leftEye.position.set(-0.14, 0.06, 0.37);
+          this.rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.052, 14, 14), darkEyeMat);
+          this.rightEye.position.set(0.14, 0.06, 0.37);
+          this.headGroup.add(this.leftEye, this.rightEye);
+
+          const browGeo = new THREE.BoxGeometry(0.13, 0.032, 0.04);
+          this.leftBrow = new THREE.Mesh(browGeo, suitMat);
+          this.leftBrow.position.set(-0.14, 0.16, 0.38);
+          this.rightBrow = new THREE.Mesh(browGeo, suitMat);
+          this.rightBrow.position.set(0.14, 0.16, 0.38);
+          this.headGroup.add(this.leftBrow, this.rightBrow);
+
+          // Dapper Mustache / Smile
+          this.mustacheGroup = new THREE.Group();
+          this.mustacheGroup.position.set(0, -0.11, 0.39);
+          const stacheLeft = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.16, 12), suitMat);
+          stacheLeft.rotation.z = Math.PI / 2.3;
+          stacheLeft.position.x = -0.07;
+          const stacheRight = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.16, 12), suitMat);
+          stacheRight.rotation.z = -Math.PI / 2.3;
+          stacheRight.position.x = 0.07;
+          this.mustacheGroup.add(stacheLeft, stacheRight);
+          this.headGroup.add(this.mustacheGroup);
+
+          // Monte Carlo VIP Top Hat with Gold Band
+          this.hatGroup = new THREE.Group();
+          this.hatGroup.position.set(0, 0.34, 0);
+          const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.56, 0.05, 28), suitMat);
+          const hatCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.39, 0.36, 0.48, 28), suitMat);
+          hatCrown.position.y = 0.24;
+          const hatBand = new THREE.Mesh(new THREE.CylinderGeometry(0.375, 0.37, 0.08, 28), goldMat);
+          hatBand.position.y = 0.06;
+          this.hatGroup.add(hatBrim, hatCrown, hatBand);
+          this.headGroup.add(this.hatGroup);
+
+          // Articulated 3D Gloved Hands Hovering in Front
+          this.leftHand = this.createGlovedHand(shirtMat, goldMat);
+          this.leftHand.position.set(-0.62, 0.55, 0.78);
+          this.dealerGroup.add(this.leftHand);
+
+          this.rightHand = this.createGlovedHand(shirtMat, goldMat);
+          this.rightHand.position.set(0.62, 0.55, 0.78);
+          this.dealerGroup.add(this.rightHand);
+
+          this.clock = new THREE.Clock();
+
+          // Mouse & Touch Drag Interaction to Rotate Dealer
+          this.container.addEventListener("mousedown", (e) => {
+            this.isDragging = true;
+            this.dragStartX = e.clientX;
+          });
+          window.addEventListener("mouseup", () => {
+            this.isDragging = false;
+          });
+          window.addEventListener("mousemove", (e) => {
+            if (this.isDragging) {
+              const dx = e.clientX - this.dragStartX;
+              this.targetRotY = Math.max(-0.6, Math.min(0.6, dx * 0.008));
+            }
+          });
+
+          window.addEventListener("resize", () => this.handleResize());
+
+          this.animateLoop();
+        }
+
+        createGlovedHand(gloveMat, cuffMat) {
+          const group = new THREE.Group();
+          const palm = new THREE.Mesh(new THREE.SphereGeometry(0.16, 18, 18), gloveMat);
+          palm.scale.set(1.1, 0.75, 1.25);
+          const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.14, 0.12, 16), cuffMat);
+          cuff.position.set(0, 0.06, -0.14);
+          cuff.rotation.x = Math.PI / 3;
+          group.add(palm, cuff);
+          return group;
+        }
+
+        handleResize() {
+          if (!this.renderer || !this.camera || !this.container) return;
+          const w = this.container.clientWidth || 200;
+          const h = this.container.clientHeight || 140;
+          this.camera.aspect = w / h;
+          this.camera.updateProjectionMatrix();
+          this.renderer.setSize(w, h);
+        }
+
+        setMood(newMood, durationMs = 2400) {
+          this.mood = newMood;
+          if (this.moodTimer) clearTimeout(this.moodTimer);
+          if (newMood !== "IDLE" && durationMs > 0) {
+            this.moodTimer = setTimeout(() => {
+              this.mood = "IDLE";
+            }, durationMs);
+          }
+        }
+
+        animateLoop() {
+          requestAnimationFrame(() => this.animateLoop());
+          if (!this.renderer || !this.scene || !this.camera) return;
+
+          const t = this.clock ? this.clock.getElapsedTime() : performance.now() * 0.001;
+
+          // Smooth return of user rotation
+          if (!this.isDragging) {
+            this.targetRotY *= 0.94;
+          }
+          this.dealerGroup.rotation.y += (this.targetRotY - this.dealerGroup.rotation.y) * 0.12;
+
+          // Natural Blinking every ~4 seconds
+          const blinkCycle = t % 4.2;
+          const eyeScaleY = (blinkCycle > 4.0 && blinkCycle < 4.15) ? 0.1 : 1.0;
+          this.leftEye.scale.y = eyeScaleY;
+          this.rightEye.scale.y = eyeScaleY;
+
+          // Default Neutral Eyebrows & Hat
+          this.leftBrow.rotation.z = 0;
+          this.rightBrow.rotation.z = 0;
+          this.hatGroup.position.y = 0.34;
+          this.hatGroup.rotation.z = 0;
+
+          if (this.mood === "IDLE") {
+            // Subtle breathing & scanning the felt
+            this.torsoGroup.position.y = 0.38 + Math.sin(t * 2.2) * 0.025;
+            this.headGroup.position.y = 1.38 + Math.sin(t * 2.2) * 0.03;
+            this.headGroup.rotation.y = Math.sin(t * 0.9) * 0.16;
+            this.headGroup.rotation.x = Math.sin(t * 1.4) * 0.04;
+
+            this.leftHand.position.set(-0.62 + Math.sin(t * 1.8) * 0.04, 0.52 + Math.cos(t * 2.2) * 0.03, 0.78);
+            this.rightHand.position.set(0.62 - Math.sin(t * 1.8) * 0.04, 0.52 + Math.cos(t * 2.2) * 0.03, 0.78);
+          } else if (this.mood === "SHUFFLING") {
+            // Rapid riffle shuffle hand interleaving
+            this.headGroup.rotation.x = 0.18;
+            this.headGroup.rotation.y = Math.sin(t * 8) * 0.08;
+            this.leftHand.position.set(-0.28 + Math.sin(t * 18) * 0.18, 0.58 + Math.abs(Math.cos(t * 18)) * 0.08, 0.92);
+            this.rightHand.position.set(0.28 - Math.sin(t * 18) * 0.18, 0.58 + Math.abs(Math.sin(t * 18)) * 0.08, 0.92);
+          } else if (this.mood === "DEALING") {
+            // Right hand flicking cards from shoe to center
+            this.headGroup.rotation.y = -0.15 + Math.sin(t * 10) * 0.12;
+            this.headGroup.rotation.x = 0.12;
+            this.leftHand.position.set(-0.55, 0.55, 0.82);
+            this.rightHand.position.set(0.35 + Math.sin(t * 14) * 0.35, 0.62 + Math.abs(Math.cos(t * 14)) * 0.14, 0.95);
+          } else if (this.mood === "WIN") {
+            // Respectful nod, raised eyebrows, tipping top hat & clapping hands
+            this.leftBrow.rotation.z = 0.18;
+            this.rightBrow.rotation.z = -0.18;
+            this.headGroup.position.y = 1.42 + Math.abs(Math.sin(t * 6)) * 0.06;
+            this.headGroup.rotation.x = Math.sin(t * 6) * 0.12;
+            this.hatGroup.position.y = 0.42 + Math.abs(Math.sin(t * 6)) * 0.08;
+            this.hatGroup.rotation.z = -0.08;
+
+            const clapOffset = Math.abs(Math.sin(t * 12)) * 0.26;
+            this.leftHand.position.set(-0.18 - clapOffset, 0.72, 0.92);
+            this.rightHand.position.set(0.18 + clapOffset, 0.72, 0.92);
+          } else if (this.mood === "LOSE") {
+            // Confident house stance, slight serious brow, sweeping chips motion
+            this.leftBrow.rotation.z = -0.22;
+            this.rightBrow.rotation.z = 0.22;
+            this.headGroup.rotation.y = Math.sin(t * 4) * 0.12;
+            this.headGroup.rotation.x = -0.06;
+            this.leftHand.position.set(-0.45 + Math.cos(t * 5) * 0.25, 0.52, 0.88);
+            this.rightHand.position.set(0.45 + Math.cos(t * 5) * 0.25, 0.52, 0.88);
+          } else if (this.mood === "PUSH") {
+            // Classic Croupier Shrug (Hands raised outward, head tilt)
+            this.headGroup.rotation.z = Math.sin(t * 4) * 0.14;
+            this.leftHand.position.set(-0.78, 0.78 + Math.sin(t * 5) * 0.05, 0.75);
+            this.rightHand.position.set(0.78, 0.78 + Math.sin(t * 5) * 0.05, 0.75);
+          } else if (this.mood === "BANKRUPT") {
+            // Shocked reaction then tossing reload chips forward
+            this.leftBrow.rotation.z = 0.3;
+            this.rightBrow.rotation.z = -0.3;
+            this.hatGroup.position.y = 0.48 + Math.abs(Math.sin(t * 10)) * 0.1;
+            this.headGroup.position.y = 1.44;
+            this.leftHand.position.set(-0.35, 0.65 + Math.sin(t * 14) * 0.18, 0.98);
+            this.rightHand.position.set(0.35, 0.65 + Math.cos(t * 14) * 0.18, 0.98);
+          }
+
+          this.renderer.render(this.scene, this.camera);
+        }
+      }
+
+      /* =========================================================================
+       * 5. PARTICLE FX ENGINE (WIN GOLD BURST, PUSH SPARKS, BANKRUPT CHIP SHOWER)
+       * ========================================================================= */
+      class TableParticleFX {
+        constructor(canvasEl) {
+          this.canvas = canvasEl;
+          this.ctx = canvasEl ? canvasEl.getContext("2d") : null;
+          this.particles = [];
+          this.running = false;
+          this.resize();
+          window.addEventListener("resize", () => this.resize());
+        }
+
+        resize() {
+          if (!this.canvas || !this.canvas.parentElement) return;
+          this.canvas.width = this.canvas.parentElement.clientWidth;
+          this.canvas.height = this.canvas.parentElement.clientHeight;
+        }
+
+        spawnWinBurst() {
+          this.resize();
+          const cx = this.canvas.width / 2;
+          const cy = this.canvas.height * 0.55;
+          const colors = ["#facc15", "#f59e0b", "#fde047", "#34d399", "#ffffff", "#d4af37"];
+
+          for (let i = 0; i < 85; i++) {
+            const angle = (Math.PI * 2 * i) / 85 + (Math.random() - 0.5) * 0.3;
+            const speed = 4 + Math.random() * 9;
+            this.particles.push({
+              x: cx,
+              y: cy,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed - 3.5,
+              gravity: 0.22,
+              size: 5 + Math.random() * 6,
+              color: colors[i % colors.length],
+              rotation: Math.random() * Math.PI * 2,
+              vRot: (Math.random() - 0.5) * 0.25,
+              alpha: 1,
+              decay: 0.012 + Math.random() * 0.01,
+              type: i % 3 === 0 ? "coin" : "confetti"
+            });
+          }
+          this.startLoop();
+        }
+
+        spawnPushRipples() {
+          this.resize();
+          const cx = this.canvas.width / 2;
+          const cy = this.canvas.height * 0.52;
+          for (let i = 0; i < 40; i++) {
+            const angle = (Math.PI * 2 * i) / 40;
+            const speed = 2.5 + Math.random() * 4;
+            this.particles.push({
+              x: cx,
+              y: cy,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              gravity: 0.02,
+              size: 4 + Math.random() * 4,
+              color: i % 2 === 0 ? "#fde047" : "#e2e8f0",
+              rotation: 0,
+              vRot: 0.1,
+              alpha: 1,
+              decay: 0.02,
+              type: "coin"
+            });
+          }
+          this.startLoop();
+        }
+
+        spawnBankruptChipShower() {
+          this.resize();
+          const colors = ["#facc15", "#10b981", "#a855f7", "#ef4444"];
+          for (let i = 0; i < 65; i++) {
+            this.particles.push({
+              x: Math.random() * this.canvas.width,
+              y: -20 - Math.random() * 140,
+              vx: (Math.random() - 0.5) * 2.5,
+              vy: 3.5 + Math.random() * 5.5,
+              gravity: 0.12,
+              size: 9 + Math.random() * 5,
+              color: colors[i % colors.length],
+              rotation: Math.random() * Math.PI,
+              vRot: (Math.random() - 0.5) * 0.15,
+              alpha: 1,
+              decay: 0.008 + Math.random() * 0.006,
+              type: "coin"
+            });
+          }
+          this.startLoop();
+        }
+
+        startLoop() {
+          if (this.running) return;
+          this.running = true;
+          const step = () => {
+            if (!this.ctx) return;
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+            for (let i = this.particles.length - 1; i >= 0; i--) {
+              const p = this.particles[i];
+              p.x += p.vx;
+              p.y += p.vy;
+              p.vy += p.gravity;
+              p.rotation += p.vRot;
+              p.alpha -= p.decay;
+
+              if (p.alpha <= 0) {
+                this.particles.splice(i, 1);
+                continue;
+              }
+
+              this.ctx.save();
+              this.ctx.globalAlpha = Math.max(0, p.alpha);
+              this.ctx.translate(p.x, p.y);
+              this.ctx.rotate(p.rotation);
+
+              if (p.type === "coin") {
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+                this.ctx.fillStyle = p.color;
+                this.ctx.fill();
+                this.ctx.lineWidth = 1.5;
+                this.ctx.strokeStyle = "#ffffff";
+                this.ctx.stroke();
+              } else {
+                this.ctx.fillStyle = p.color;
+                this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+              }
+              this.ctx.restore();
+            }
+
+            if (this.particles.length > 0) {
+              requestAnimationFrame(step);
+            } else {
+              this.running = false;
+              this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+          };
+          requestAnimationFrame(step);
+        }
+      }
+
+      /* =========================================================================
+       * 6. CRYPTOGRAPHIC FISHER-YATES SHOE & RNG ENGINE
        * ========================================================================= */
       const NUM_DECKS = 6;
       const TOTAL_SHOE_CARDS = NUM_DECKS * 52; // 312 cards
@@ -911,7 +1640,6 @@
       const SUITS = ["spades", "hearts", "diamonds", "clubs"];
       const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 
-      // Unbiased cryptographic random integer in [0, maxExclusive) using rejection sampling
       function cryptoRandomInt(maxExclusive) {
         if (maxExclusive <= 1) return 0;
         const uint32Max = 0xFFFFFFFF;
@@ -954,7 +1682,7 @@
       }
 
       /* =========================================================================
-       * 4. GAME STATE & HAND EVALUATION LOGIC
+       * 7. GAME STATE & HAND EVALUATION LOGIC
        * ========================================================================= */
       const state = {
         shoe: [],
@@ -967,7 +1695,7 @@
         phase: "BETTING", // BETTING | DEALING | INSURANCE | PLAYER_TURN | DEALER_TURN | RESOLVING | SHUFFLING
         dealerHand: [],
         dealerHoleHidden: true,
-        playerHands: [], // Array of { cards: [], bet: number, doubled: boolean, stood: boolean, busted: boolean, isBlackjack: boolean, domElements: [] }
+        playerHands: [],
         activeHandIndex: 0,
         insuranceBet: 0,
         needsCutCardShuffle: false
@@ -1013,9 +1741,14 @@
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
       /* =========================================================================
-       * 5. DOM REFERENCES
+       * 8. DOM REFERENCES & CONTROLLERS
        * ========================================================================= */
       const dom = {
+        casinoRailFrame: document.getElementById("casino-rail-frame"),
+        casinoTableFelt: document.getElementById("casino-table-felt"),
+        fxParticleCanvas: document.getElementById("fx-particle-canvas"),
+        dealer3dContainer: document.getElementById("dealer-3d-container"),
+        dealerSpeechBubble: document.getElementById("dealer-speech-bubble"),
         bankrollDisplay: document.getElementById("bankroll-display"),
         wagerDisplay: document.getElementById("wager-display"),
         payoutDisplay: document.getElementById("payout-display"),
@@ -1037,6 +1770,12 @@
         btnInsureNo: document.getElementById("btn-insure-no"),
         shuffleOverlay: document.getElementById("shuffle-overlay"),
         shuffleCardsStage: document.getElementById("shuffle-cards-stage"),
+        outcomeFxOverlay: document.getElementById("outcome-fx-overlay"),
+        outcomeFxCard: document.getElementById("outcome-fx-card"),
+        outcomeFxRing: document.getElementById("outcome-fx-ring"),
+        outcomeFxIcon: document.getElementById("outcome-fx-icon"),
+        outcomeFxTitle: document.getElementById("outcome-fx-title"),
+        outcomeFxSubtitle: document.getElementById("outcome-fx-subtitle"),
         chipRackButtons: Array.from(document.querySelectorAll("[data-chip-value]")),
         bettingControlsGroup: document.getElementById("betting-controls-group"),
         actionControlsGroup: document.getElementById("action-controls-group"),
@@ -1047,12 +1786,13 @@
         btnStand: document.getElementById("btn-stand"),
         btnDouble: document.getElementById("btn-double"),
         btnSplit: document.getElementById("btn-split"),
+        btnLangToggle: document.getElementById("btn-lang-toggle"),
+        langLabelText: document.getElementById("lang-label-text"),
         btnShuffleDeck: document.getElementById("btn-shuffle-deck"),
         btnResetBankroll: document.getElementById("btn-reset-bankroll"),
         btnSoundToggle: document.getElementById("btn-sound-toggle"),
         iconSoundOn: document.getElementById("icon-sound-on"),
         iconSoundOff: document.getElementById("icon-sound-off"),
-        btnDownloadHtml: document.getElementById("btn-download-html"),
         btnRngInfo: document.getElementById("btn-rng-info"),
         rngModal: document.getElementById("rng-modal"),
         btnCloseRngModal: document.getElementById("btn-close-rng-modal"),
@@ -1061,12 +1801,58 @@
         modalShuffleSeed: document.getElementById("modal-shuffle-seed")
       };
 
+      const dealer3D = new Dealer3DController(dom.dealer3dContainer);
+      const particleFX = new TableParticleFX(dom.fxParticleCanvas);
+
       /* =========================================================================
-       * 6. UI & ANIMATION HELPERS
+       * 9. LANGUAGE SWITCHER & UI UPDATERS
        * ========================================================================= */
+      function setDealerSpeech(text) {
+        if (!dom.dealerSpeechBubble) return;
+        dom.dealerSpeechBubble.textContent = text;
+      }
+
+      function applyLanguageTranslations() {
+        document.documentElement.lang = currentLang;
+        dom.langLabelText.textContent = currentLang === "th" ? "ไทย / EN" : "EN / ไทย";
+
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const key = el.getAttribute("data-i18n");
+          if (I18N[currentLang][key]) {
+            el.textContent = I18N[currentLang][key];
+          }
+        });
+
+        // Curved SVG Felt Texts
+        const arcBj = document.getElementById("svg-arc-bj-text");
+        const arcRules = document.getElementById("svg-arc-rules-text");
+        const arcIns = document.getElementById("svg-arc-ins-text");
+        if (arcBj) arcBj.textContent = t("arcBlackjack");
+        if (arcRules) arcRules.textContent = t("arcDealerRules");
+        if (arcIns) arcIns.textContent = t("arcInsurance");
+
+        dom.btnInsureNo.textContent = t("noInsuranceBtn");
+
+        if (state.playerHands.length > 1) {
+          document.getElementById("player-hand-title-0").textContent = t("splitHand1Title");
+          document.getElementById("player-hand-title-1").textContent = t("splitHand2Title");
+        } else {
+          document.getElementById("player-hand-title-0").textContent = t("playerHandTitle");
+        }
+
+        // Update current status banner & dealer speech according to current phase
+        if (state.phase === "BETTING") {
+          setStatusBanner(t("msgPlaceBet"), "gold");
+          setDealerSpeech(t("dealerSpeechIdle"));
+        } else if (state.phase === "PLAYER_TURN") {
+          setStatusBanner(t("msgYourTurn"), "gold");
+          setDealerSpeech(t("dealerSpeechTurn"));
+        }
+      }
+
       function setStatusBanner(message, tone = "gold") {
         dom.tableStatusBanner.textContent = message;
-        dom.tableStatusBanner.className = "px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide shadow-xl transition-all duration-300 ";
+        dom.tableStatusBanner.className = "px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide shadow-xl transition-all duration-300 text-center ";
         if (tone === "win") {
           dom.tableStatusBanner.className += "bg-emerald-950/95 border border-emerald-400/70 text-emerald-200";
         } else if (tone === "danger") {
@@ -1085,7 +1871,6 @@
         const discarded = state.discardPile.length;
         dom.discardCountLabel.textContent = String(discarded);
 
-        // Render proportional card stack in discard tray
         const layers = Math.min(12, Math.ceil(discarded / 18));
         dom.discardVisualStack.innerHTML = "";
         for (let i = 0; i < layers; i++) {
@@ -1095,7 +1880,6 @@
           dom.discardVisualStack.appendChild(layerEl);
         }
 
-        // Update fairness modal stats
         dom.modalShuffleCount.textContent = String(state.shuffleCount);
         dom.modalShoeRemaining.textContent = `${remaining} / ${TOTAL_SHOE_CARDS}`;
         dom.modalShuffleSeed.textContent = state.lastShuffleSeed || "---";
@@ -1108,7 +1892,7 @@
         visibleChips.forEach((val, idx) => {
           const chipEl = document.createElement("div");
           chipEl.className = "chip-stack-item w-11 h-11 sm:w-12 sm:h-12";
-          chipEl.style.bottom = `${22 + idx * 4}px`;
+          chipEl.style.bottom = `${20 + idx * 4}px`;
           chipEl.innerHTML = createChipSVGMarkup(val);
           dom.betChipStack.appendChild(chipEl);
         });
@@ -1133,7 +1917,6 @@
 
         dom.bettingCircleSvg.classList.toggle("active-bet-target", isBetting);
 
-        // Enable/disable chip rack buttons
         dom.chipRackButtons.forEach(btn => {
           const val = parseInt(btn.getAttribute("data-chip-value"), 10);
           btn.disabled = !isBetting || state.bankroll < val;
@@ -1147,7 +1930,6 @@
         dom.btnShuffleDeck.disabled = !isBetting;
         dom.btnResetBankroll.disabled = !isBetting;
 
-        // Player turn buttons
         if (isPlayerTurn && state.playerHands[state.activeHandIndex]) {
           const hand = state.playerHands[state.activeHandIndex];
           const canDouble = hand.cards.length === 2 && state.bankroll >= hand.bet;
@@ -1164,7 +1946,103 @@
         }
       }
 
-      // Animate a flying chip from source element to target element
+      /* =========================================================================
+       * 10. DEDICATED OUTCOME ANIMATIONS (WIN / LOSE / PUSH / OUT OF MONEY)
+       * ========================================================================= */
+      async function playOutcomeAnimation(outcomeType, subtitleText, durationMs = 1750) {
+        // outcomeType: "WIN" | "BLACKJACK" | "LOSE" | "BUST" | "PUSH" | "BANKRUPT"
+        dom.outcomeFxOverlay.classList.remove("hidden");
+
+        // Reset animation trigger
+        dom.outcomeFxCard.classList.remove("outcome-card-pop");
+        void dom.outcomeFxCard.offsetWidth;
+        dom.outcomeFxCard.classList.add("outcome-card-pop");
+
+        if (outcomeType === "WIN" || outcomeType === "BLACKJACK") {
+          dealer3D.setMood("WIN", durationMs + 500);
+          setDealerSpeech(outcomeType === "BLACKJACK" ? t("dealerSpeechBlackjack") : t("dealerSpeechWin"));
+          particleFX.spawnWinBurst();
+
+          dom.outcomeFxCard.className = "outcome-card-pop relative px-7 py-5 rounded-3xl border-2 border-amber-300 bg-gradient-to-b from-emerald-950/95 via-zinc-950/95 to-amber-950/95 shadow-[0_0_50px_rgba(250,204,21,0.5)] flex flex-col items-center text-center max-w-md w-full";
+          dom.outcomeFxRing.className = "pulse-ring-anim absolute inset-0 rounded-3xl border-2 border-amber-400 pointer-events-none";
+          dom.outcomeFxIcon.className = "w-16 h-16 mb-2 flex items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 via-amber-500 to-amber-700 text-zinc-950 shadow-lg";
+          dom.outcomeFxIcon.innerHTML = `
+            <svg class="w-10 h-10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+            </svg>
+          `;
+          dom.outcomeFxTitle.className = "font-serif-casino text-2xl sm:text-3xl font-extrabold tracking-wider uppercase text-amber-300 drop-shadow";
+          dom.outcomeFxTitle.textContent = outcomeType === "BLACKJACK" ? t("fxBlackjackTitle") : t("fxWinTitle");
+          dom.outcomeFxSubtitle.className = "text-xs sm:text-sm font-semibold mt-1 text-emerald-300";
+          dom.outcomeFxSubtitle.textContent = subtitleText;
+        } else if (outcomeType === "LOSE" || outcomeType === "BUST") {
+          dealer3D.setMood("LOSE", durationMs + 500);
+          setDealerSpeech(t("dealerSpeechLose"));
+
+          // Shake the table on loss/bust
+          dom.casinoRailFrame.classList.remove("animate-table-shake");
+          void dom.casinoRailFrame.offsetWidth;
+          dom.casinoRailFrame.classList.add("animate-table-shake");
+
+          dom.outcomeFxCard.className = "outcome-card-pop relative px-7 py-5 rounded-3xl border-2 border-red-500/80 bg-gradient-to-b from-red-950/95 via-zinc-950/95 to-black/95 shadow-[0_0_50px_rgba(220,38,38,0.55)] flex flex-col items-center text-center max-w-md w-full";
+          dom.outcomeFxRing.className = "pulse-ring-anim absolute inset-0 rounded-3xl border-2 border-red-500 pointer-events-none";
+          dom.outcomeFxIcon.className = "w-16 h-16 mb-2 flex items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-red-800 text-white shadow-lg";
+          dom.outcomeFxIcon.innerHTML = `
+            <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+          `;
+          dom.outcomeFxTitle.className = "font-serif-casino text-2xl sm:text-3xl font-extrabold tracking-wider uppercase text-red-400 drop-shadow";
+          dom.outcomeFxTitle.textContent = outcomeType === "BUST" ? t("fxBustTitle") : t("fxLoseTitle");
+          dom.outcomeFxSubtitle.className = "text-xs sm:text-sm font-semibold mt-1 text-red-200/90";
+          dom.outcomeFxSubtitle.textContent = subtitleText;
+        } else if (outcomeType === "PUSH") {
+          dealer3D.setMood("PUSH", durationMs + 500);
+          setDealerSpeech(t("dealerSpeechPush"));
+          particleFX.spawnPushRipples();
+
+          dom.outcomeFxCard.className = "outcome-card-pop relative px-7 py-5 rounded-3xl border-2 border-amber-400/80 bg-gradient-to-b from-zinc-900/95 via-zinc-950/95 to-amber-950/90 shadow-[0_0_40px_rgba(251,191,36,0.4)] flex flex-col items-center text-center max-w-md w-full";
+          dom.outcomeFxRing.className = "pulse-ring-anim absolute inset-0 rounded-3xl border-2 border-amber-300 pointer-events-none";
+          dom.outcomeFxIcon.className = "w-16 h-16 mb-2 flex items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-600 text-zinc-950 shadow-lg";
+          dom.outcomeFxIcon.innerHTML = `
+            <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+            </svg>
+          `;
+          dom.outcomeFxTitle.className = "font-serif-casino text-2xl sm:text-3xl font-extrabold tracking-wider uppercase text-amber-300 drop-shadow";
+          dom.outcomeFxTitle.textContent = t("fxPushTitle");
+          dom.outcomeFxSubtitle.className = "text-xs sm:text-sm font-semibold mt-1 text-zinc-200";
+          dom.outcomeFxSubtitle.textContent = subtitleText;
+        } else if (outcomeType === "BANKRUPT") {
+          dealer3D.setMood("BANKRUPT", durationMs + 700);
+          setDealerSpeech(t("dealerSpeechBankrupt"));
+          sound.playBankruptFanfare();
+          dom.casinoTableFelt.classList.add("bankrupt-vignette");
+          particleFX.spawnBankruptChipShower();
+
+          dom.outcomeFxCard.className = "outcome-card-pop relative px-7 py-6 rounded-3xl border-2 border-amber-400 bg-gradient-to-b from-red-950/95 via-zinc-950/95 to-emerald-950/95 shadow-[0_0_60px_rgba(239,68,68,0.65)] flex flex-col items-center text-center max-w-md w-full";
+          dom.outcomeFxRing.className = "pulse-ring-anim absolute inset-0 rounded-3xl border-2 border-amber-400 pointer-events-none";
+          dom.outcomeFxIcon.className = "w-16 h-16 mb-2 flex items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 via-amber-500 to-emerald-500 text-white shadow-lg";
+          dom.outcomeFxIcon.innerHTML = `
+            <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          `;
+          dom.outcomeFxTitle.className = "font-serif-casino text-2xl sm:text-3xl font-extrabold tracking-wider uppercase text-amber-300 drop-shadow";
+          dom.outcomeFxTitle.textContent = t("fxBankruptTitle");
+          dom.outcomeFxSubtitle.className = "text-xs sm:text-sm font-semibold mt-1 text-emerald-300";
+          dom.outcomeFxSubtitle.textContent = t("fxBankruptSub");
+        }
+
+        await sleep(durationMs);
+        dom.outcomeFxOverlay.classList.add("hidden");
+        dom.casinoRailFrame.classList.remove("animate-table-shake");
+        dom.casinoTableFelt.classList.remove("bankrupt-vignette");
+      }
+
+      /* =========================================================================
+       * 11. CARD DEALING & ANIMATED CARD SWEEP TO DISCARD TRAY
+       * ========================================================================= */
       function animateFlyingChip(value, fromEl, toEl) {
         return new Promise(resolve => {
           const fromRect = fromEl.getBoundingClientRect();
@@ -1195,11 +2073,10 @@
           setTimeout(() => {
             flyer.remove();
             resolve();
-          }, 390);
+          }, 380);
         });
       }
 
-      // Create a DOM element for a playing card
       function createPlayingCardElement(card, faceUp = true, isDoubled = false) {
         const cfg = SUIT_CONFIG[card.suit];
         const wrapper = document.createElement("div");
@@ -1232,7 +2109,6 @@
         return wrapper;
       }
 
-      // Deal a card from the top of the cryptographic shoe with 3D slide & flip animation
       async function dealCardFromShoe(targetContainer, faceUp = true, isDoubled = false) {
         const card = state.shoe.shift();
         if (state.shoe.length <= CUT_CARD_THRESHOLD) {
@@ -1240,6 +2116,7 @@
         }
         updateShoeAndDiscardUI();
 
+        dealer3D.setMood("DEALING", 600);
         sound.playCardSlide();
 
         const cardEl = createPlayingCardElement(card, false, isDoubled);
@@ -1263,9 +2140,9 @@
                 setTimeout(() => {
                   const inner = cardEl.querySelector(".card-inner");
                   if (inner) inner.classList.add("is-flipped");
-                }, 140);
+                }, 135);
               }
-              setTimeout(resolve, 430);
+              setTimeout(resolve, 420);
             });
           });
         });
@@ -1273,8 +2150,70 @@
         return { card, cardEl };
       }
 
+      // Smoothly sweep all cards on the felt into the Discard Tray at the end of a round
+      async function sweepAndClearTableCardsToDiscard() {
+        const totalCardsOnTable =
+          state.dealerHand.length +
+          state.playerHands.reduce((acc, h) => acc + h.cards.length, 0);
+
+        if (totalCardsOnTable === 0) return;
+
+        setStatusBanner(t("msgSweepingCards"), "gold");
+        setDealerSpeech(t("dealerSpeechSweeping"));
+        dealer3D.setMood("DEALING", 800);
+
+        const allCardNodes = Array.from(
+          document.querySelectorAll("#dealer-cards-container .playing-card, #player-cards-container-0 .playing-card, #player-cards-container-1 .playing-card")
+        );
+
+        const trayRect = dom.discardTrayAnchor.getBoundingClientRect();
+        const trayCenterX = trayRect.left + trayRect.width / 2;
+        const trayCenterY = trayRect.top + trayRect.height / 2;
+
+        allCardNodes.forEach((cardEl, idx) => {
+          const rect = cardEl.getBoundingClientRect();
+          const cardCenterX = rect.left + rect.width / 2;
+          const cardCenterY = rect.top + rect.height / 2;
+
+          const dx = trayCenterX - cardCenterX;
+          const dy = trayCenterY - cardCenterY;
+
+          // Flip cards face down as they sweep to the discard tray
+          const inner = cardEl.querySelector(".card-inner");
+          if (inner) inner.classList.remove("is-flipped");
+
+          setTimeout(() => {
+            sound.playCardSlide();
+            cardEl.style.transition = "transform 0.42s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.38s ease";
+            cardEl.style.transform = `translate(${dx}px, ${dy}px) scale(0.35) rotate(-25deg)`;
+            cardEl.style.opacity = "0.15";
+          }, idx * 45);
+        });
+
+        // Pulse the discard tray when cards land
+        await sleep(allCardNodes.length * 45 + 420);
+        dom.discardTrayAnchor.classList.add("scale-105");
+        setTimeout(() => dom.discardTrayAnchor.classList.remove("scale-105"), 220);
+
+        // Move cards in memory to discard pile and reset containers
+        state.discardPile.push(...state.dealerHand);
+        state.playerHands.forEach(h => state.discardPile.push(...h.cards));
+        state.dealerHand = [];
+        state.playerHands = [];
+
+        dom.dealerCardsContainer.innerHTML = "";
+        document.getElementById("player-cards-container-0").innerHTML = "";
+        document.getElementById("player-cards-container-1").innerHTML = "";
+        document.getElementById("player-hand-box-1").classList.add("hidden");
+        document.getElementById("player-hand-title-0").textContent = t("playerHandTitle");
+        document.getElementById("player-outcome-badge-0").classList.add("hidden");
+        document.getElementById("player-outcome-badge-1").classList.add("hidden");
+
+        updateHandScoreUI();
+        updateShoeAndDiscardUI();
+      }
+
       function updateHandScoreUI() {
-        // Dealer Score Badge
         if (state.dealerHand.length === 0) {
           dom.dealerScoreBadge.classList.add("hidden");
         } else {
@@ -1296,7 +2235,6 @@
           }
         }
 
-        // Player Hands Score Badges
         for (let i = 0; i < 2; i++) {
           const box = document.getElementById(`player-hand-box-${i}`);
           const badge = document.getElementById(`player-score-badge-${i}`);
@@ -1340,14 +2278,16 @@
       }
 
       /* =========================================================================
-       * 7. ANIMATED RIFFLE & CASCADE SHUFFLE SEQUENCE
+       * 12. ANIMATED RIFFLE SHUFFLE SEQUENCE
        * ========================================================================= */
       async function performRiffleShuffleSequence() {
         const prevPhase = state.phase;
         state.phase = "SHUFFLING";
         updateControlsAndBankrollUI();
 
-        // Build and cryptographically shuffle 6-deck shoe
+        dealer3D.setMood("SHUFFLING", 1300);
+        setDealerSpeech(t("dealerSpeechShuffling"));
+
         state.shoe = fisherYatesCryptoShuffle(buildFreshMultiDeckShoe());
         state.discardPile = [];
         state.shuffleCount += 1;
@@ -1357,7 +2297,6 @@
         dom.shuffleOverlay.classList.remove("hidden");
         dom.shuffleCardsStage.innerHTML = "";
 
-        // Create 10 visual SVG card backs (5 left half, 5 right half) that riffle interleave
         for (let i = 0; i < 10; i++) {
           const isLeft = i % 2 === 0;
           const cardVisual = document.createElement("div");
@@ -1373,12 +2312,13 @@
         await sleep(1150);
         dom.shuffleOverlay.classList.add("hidden");
         state.phase = prevPhase === "SHUFFLING" ? "BETTING" : prevPhase;
-        setStatusBanner("Shoe cryptographically shuffled — Place your bet");
+        setStatusBanner(t("msgShuffledPlaceBet"), "gold");
+        setDealerSpeech(t("dealerSpeechIdle"));
         updateControlsAndBankrollUI();
       }
 
       /* =========================================================================
-       * 8. BETTING & TABLE CLEANUP FLOW
+       * 13. BETTING & CORE BLACKJACK GAMEPLAY ENGINE
        * ========================================================================= */
       async function addChipToBet(chipValue, sourceBtn) {
         if (state.phase !== "BETTING" || state.bankroll < chipValue) return;
@@ -1401,7 +2341,7 @@
         sound.playChipClink(-120);
         renderStackedBetChips();
         updateControlsAndBankrollUI();
-        setStatusBanner("Bet cleared — Select chips to wager");
+        setStatusBanner(t("msgBetCleared"), "gold");
       }
 
       async function rebetPreviousWager() {
@@ -1414,45 +2354,18 @@
         sound.playChipClink(80);
         renderStackedBetChips();
         updateControlsAndBankrollUI();
-        setStatusBanner(`Rebet ${formatCurrency(needed)} placed — Ready to deal`);
+        setStatusBanner(t("msgRebetPlaced", formatCurrency(needed)), "gold");
       }
 
-      async function clearTableCardsToDiscard() {
-        const totalCardsOnTable =
-          state.dealerHand.length +
-          state.playerHands.reduce((acc, h) => acc + h.cards.length, 0);
-
-        if (totalCardsOnTable === 0) return;
-
-        // Move cards in memory to discard pile
-        state.discardPile.push(...state.dealerHand);
-        state.playerHands.forEach(h => state.discardPile.push(...h.cards));
-        state.dealerHand = [];
-        state.playerHands = [];
-
-        dom.dealerCardsContainer.innerHTML = "";
-        document.getElementById("player-cards-container-0").innerHTML = "";
-        document.getElementById("player-cards-container-1").innerHTML = "";
-        document.getElementById("player-hand-box-1").classList.add("hidden");
-        document.getElementById("player-hand-title-0").textContent = "Player Hand";
-        document.getElementById("player-outcome-badge-0").classList.add("hidden");
-        document.getElementById("player-outcome-badge-1").classList.add("hidden");
-
-        updateHandScoreUI();
-        updateShoeAndDiscardUI();
-      }
-
-      /* =========================================================================
-       * 9. CORE BLACKJACK GAMEPLAY ENGINE
-       * ========================================================================= */
       async function startDealRound() {
         const totalBet = sumArray(state.currentBetChips);
         if (state.phase !== "BETTING" || totalBet === 0) return;
 
-        await clearTableCardsToDiscard();
+        // Ensure table is clean before dealing
+        await sweepAndClearTableCardsToDiscard();
 
         if (state.needsCutCardShuffle || state.shoe.length <= CUT_CARD_THRESHOLD) {
-          setStatusBanner("Cut card reached — Shuffling 6-deck shoe...");
+          setStatusBanner(t("msgCutCardReached"), "gold");
           await performRiffleShuffleSequence();
         }
 
@@ -1475,11 +2388,12 @@
         ];
         state.activeHandIndex = 0;
         updateControlsAndBankrollUI();
-        setStatusBanner("Dealing cards...");
+        setStatusBanner(t("msgDealing"), "gold");
+        setDealerSpeech(t("dealerSpeechDealing"));
 
         const playerContainer0 = document.getElementById("player-cards-container-0");
 
-        // Standard Blackjack dealing sequence: Player 1 -> Dealer Up -> Player 2 -> Dealer Hole (Face Down)
+        // Deal sequence: Player 1 -> Dealer Up -> Player 2 -> Dealer Hole (Face Down)
         const pCard1 = await dealCardFromShoe(playerContainer0, true);
         state.playerHands[0].cards.push(pCard1.card);
         state.playerHands[0].domElements.push(pCard1.cardEl);
@@ -1503,9 +2417,10 @@
           const insuranceCost = Math.floor(totalBet / 2);
           if (insuranceCost > 0 && state.bankroll >= insuranceCost) {
             state.phase = "INSURANCE";
-            dom.btnInsureYes.textContent = `Buy Insurance (${formatCurrency(insuranceCost)})`;
+            dom.btnInsureYes.textContent = `${t("buyInsuranceBtn")} (${formatCurrency(insuranceCost)})`;
+            dom.btnInsureNo.textContent = t("noInsuranceBtn");
             dom.insurancePromptBar.classList.remove("hidden");
-            setStatusBanner("Dealer shows an Ace — Insurance available");
+            setStatusBanner(t("msgInsuranceAvail"), "gold");
             const tookInsurance = await new Promise(resolve => {
               dom.btnInsureYes.onclick = () => resolve(true);
               dom.btnInsureNo.onclick = () => resolve(false);
@@ -1531,12 +2446,13 @@
           return;
         }
 
-        // Otherwise begin Player Turn
+        // Begin Player Turn
         state.phase = "PLAYER_TURN";
         state.activeHandIndex = 0;
         updateHandScoreUI();
         updateControlsAndBankrollUI();
-        setStatusBanner("Your turn — Hit, Stand, Double, or Split");
+        setStatusBanner(t("msgYourTurn"), "gold");
+        setDealerSpeech(t("dealerSpeechTurn"));
       }
 
       async function revealDealerHoleCard() {
@@ -1548,7 +2464,7 @@
           const inner = holeCardEl.querySelector(".card-inner");
           if (inner) inner.classList.add("is-flipped");
         }
-        await sleep(460);
+        await sleep(450);
         updateHandScoreUI();
       }
 
@@ -1571,8 +2487,8 @@
           hand.busted = true;
           hand.stood = true;
           sound.playBustTone();
-          setHandOutcomeBadge(idx, "BUST", "loss");
-          await sleep(350);
+          setHandOutcomeBadge(idx, t("badgeBust"), "loss");
+          await sleep(340);
           await advanceToNextHandOrDealer();
         } else if (hEval.total === 21) {
           hand.stood = true;
@@ -1609,7 +2525,7 @@
           renderStackedBetChips();
         }
         updateControlsAndBankrollUI();
-        setStatusBanner("Doubled Down — Drawing 1 final card...");
+        setStatusBanner(t("msgDoubledDown"), "gold");
 
         const container = document.getElementById(`player-cards-container-${idx}`);
         const dealt = await dealCardFromShoe(container, true, true);
@@ -1622,7 +2538,7 @@
         if (hEval.isBust) {
           hand.busted = true;
           sound.playBustTone();
-          setHandOutcomeBadge(idx, "BUST", "loss");
+          setHandOutcomeBadge(idx, t("badgeBust"), "loss");
         }
 
         await sleep(420);
@@ -1658,19 +2574,19 @@
         };
         state.playerHands.push(hand1);
 
-        // Reveal Split Hand 2 box and move second card into it
         const box1 = document.getElementById("player-hand-box-1");
         const container0 = document.getElementById("player-cards-container-0");
         const container1 = document.getElementById("player-cards-container-1");
-        document.getElementById("player-hand-title-0").textContent = "Split Hand 1";
+        document.getElementById("player-hand-title-0").textContent = t("splitHand1Title");
+        document.getElementById("player-hand-title-1").textContent = t("splitHand2Title");
         box1.classList.remove("hidden");
         container1.appendChild(splitCardEl);
 
         updateHandScoreUI();
         updateControlsAndBankrollUI();
-        setStatusBanner("Pairs Split — Dealing second card to each hand...");
+        setStatusBanner(t("msgPairsSplit"), "gold");
 
-        await sleep(260);
+        await sleep(250);
         const dealt0 = await dealCardFromShoe(container0, true);
         hand0.cards.push(dealt0.card);
         hand0.domElements.push(dealt0.cardEl);
@@ -1682,7 +2598,6 @@
         hand1.domElements.push(dealt1.cardEl);
         updateHandScoreUI();
 
-        // Standard casino rule: splitting Aces deals 1 card to each Ace and stands automatically
         if (hand0.cards[0].rank === "A") {
           hand0.stood = true;
           hand1.stood = true;
@@ -1700,7 +2615,7 @@
           state.phase = "PLAYER_TURN";
           updateHandScoreUI();
           updateControlsAndBankrollUI();
-          setStatusBanner("Playing Split Hand 1");
+          setStatusBanner(t("msgPlayingSplitHand", 1), "gold");
         }
       }
 
@@ -1717,7 +2632,7 @@
           state.phase = "PLAYER_TURN";
           updateHandScoreUI();
           updateControlsAndBankrollUI();
-          setStatusBanner(`Playing Split Hand ${state.activeHandIndex + 1}`);
+          setStatusBanner(t("msgPlayingSplitHand", state.activeHandIndex + 1), "gold");
         } else {
           await runDealerTurnAndSettle();
         }
@@ -1734,7 +2649,7 @@
         if (anyPlayerHandLive) {
           let dEval = evaluateHand(state.dealerHand);
           while (dEval.total < 17) {
-            setStatusBanner("Dealer draws to 16, stands on all 17s...");
+            setStatusBanner(t("msgDealerDraws"), "gold");
             await sleep(420);
             const dealt = await dealCardFromShoe(dom.dealerCardsContainer, true);
             state.dealerHand.push(dealt.card);
@@ -1743,91 +2658,119 @@
           }
         }
 
-        await sleep(360);
+        await sleep(340);
         await settleRoundOutcomes();
       }
 
       async function settleRoundOutcomes() {
         state.phase = "RESOLVING";
+        updateControlsAndBankrollUI();
+
         const dEval = evaluateHand(state.dealerHand);
         let totalPayout = 0;
 
-        // Resolve Insurance side bet if placed
         if (state.insuranceBet > 0 && dEval.isBlackjack) {
-          totalPayout += state.insuranceBet * 3; // Original insurance stake + 2:1 win
+          totalPayout += state.insuranceBet * 3;
         }
 
         let summaryMessages = [];
+        let hasBlackjackWin = false;
         let overallNetWin = false;
         let anyPush = false;
+        let allBusted = true;
 
         state.playerHands.forEach((hand, idx) => {
           const hEval = evaluateHand(hand.cards);
-          const prefix = state.playerHands.length > 1 ? `Hand ${idx + 1}: ` : "";
+          const prefix = state.playerHands.length > 1 ? `#${idx + 1}: ` : "";
+
+          if (!hEval.isBust) allBusted = false;
 
           if (hEval.isBust) {
-            setHandOutcomeBadge(idx, "BUST", "loss");
-            summaryMessages.push(`${prefix}Bust`);
+            setHandOutcomeBadge(idx, t("badgeBust"), "loss");
+            summaryMessages.push(`${prefix}${t("badgeBust")} (${hEval.total})`);
           } else if (hand.isBlackjack && !dEval.isBlackjack) {
-            const bjReturn = Math.floor(hand.bet * 2.5); // Stake + 3:2 profit
+            const bjReturn = Math.floor(hand.bet * 2.5);
             totalPayout += bjReturn;
             overallNetWin = true;
-            setHandOutcomeBadge(idx, "BLACKJACK 3:2", "win");
-            summaryMessages.push(`${prefix}Blackjack! Pays 3:2`);
+            hasBlackjackWin = true;
+            setHandOutcomeBadge(idx, t("badgeBlackjack"), "win");
+            summaryMessages.push(`${prefix}${t("badgeBlackjack")} (+${formatCurrency(bjReturn)})`);
           } else if (dEval.isBlackjack && !hand.isBlackjack) {
-            setHandOutcomeBadge(idx, "DEALER BJ", "loss");
-            summaryMessages.push(`${prefix}Dealer Blackjack`);
+            setHandOutcomeBadge(idx, t("badgeDealerBJ"), "loss");
+            summaryMessages.push(`${prefix}${t("badgeDealerBJ")}`);
           } else if (dEval.isBust) {
-            totalPayout += hand.bet * 2;
+            const winReturn = hand.bet * 2;
+            totalPayout += winReturn;
             overallNetWin = true;
-            setHandOutcomeBadge(idx, "WIN", "win");
-            summaryMessages.push(`${prefix}Dealer Busts — You Win!`);
+            setHandOutcomeBadge(idx, t("badgeWin"), "win");
+            summaryMessages.push(`${prefix}${t("badgeWin")} (+${formatCurrency(winReturn)})`);
           } else if (hEval.total > dEval.total) {
-            totalPayout += hand.bet * 2;
+            const winReturn = hand.bet * 2;
+            totalPayout += winReturn;
             overallNetWin = true;
-            setHandOutcomeBadge(idx, "WIN", "win");
-            summaryMessages.push(`${prefix}Win (${hEval.total} vs ${dEval.total})`);
+            setHandOutcomeBadge(idx, t("badgeWin"), "win");
+            summaryMessages.push(`${prefix}${t("badgeWin")} (${hEval.total} vs ${dEval.total})`);
           } else if (hEval.total < dEval.total) {
-            setHandOutcomeBadge(idx, "LOSE", "loss");
-            summaryMessages.push(`${prefix}Dealer Wins (${dEval.total} vs ${hEval.total})`);
+            setHandOutcomeBadge(idx, t("badgeLose"), "loss");
+            summaryMessages.push(`${prefix}${t("badgeLose")} (${hEval.total} vs ${dEval.total})`);
           } else {
             totalPayout += hand.bet;
             anyPush = true;
-            setHandOutcomeBadge(idx, "PUSH", "push");
-            summaryMessages.push(`${prefix}Push (${hEval.total})`);
+            setHandOutcomeBadge(idx, t("badgePush"), "push");
+            summaryMessages.push(`${prefix}${t("badgePush")} (${hEval.total})`);
           }
         });
 
         state.bankroll += totalPayout;
         dom.payoutDisplay.textContent = formatCurrency(totalPayout);
+        dom.bankrollDisplay.textContent = formatCurrency(state.bankroll);
 
-        if (overallNetWin) {
+        const summaryString = summaryMessages.join("  |  ");
+
+        // Trigger the corresponding rich animation (Win, Blackjack, Push, Lose/Bust)
+        if (hasBlackjackWin) {
           sound.playWinChime();
-          setStatusBanner(summaryMessages.join("  |  "), "win");
+          setStatusBanner(summaryString, "win");
+          await playOutcomeAnimation("BLACKJACK", summaryString, 1850);
+        } else if (overallNetWin) {
+          sound.playWinChime();
+          setStatusBanner(summaryString, "win");
+          await playOutcomeAnimation("WIN", summaryString, 1750);
         } else if (anyPush && totalPayout > 0) {
-          sound.playChipClink(0);
-          setStatusBanner(summaryMessages.join("  |  "), "gold");
+          sound.playPushTone();
+          setStatusBanner(summaryString, "gold");
+          await playOutcomeAnimation("PUSH", summaryString, 1650);
         } else {
-          setStatusBanner(summaryMessages.join("  |  "), "danger");
+          sound.playBustTone();
+          setStatusBanner(summaryString, "danger");
+          await playOutcomeAnimation(allBusted ? "BUST" : "LOSE", summaryString, 1700);
         }
 
-        // Clear betting circle chips for next round
+        // Clear betting circle chips
         state.currentBetChips = [];
         renderStackedBetChips();
 
-        // Auto-replenish if player ran completely out of funds
+        // Check if player is Out of Money (< $5 minimum chip) and play Bankrupt + VIP Reload Animation
         if (state.bankroll < 5) {
-          await sleep(1100);
+          await playOutcomeAnimation("BANKRUPT", t("fxBankruptSub"), 2400);
           state.bankroll = 2500;
-          setStatusBanner("Bankroll depleted — Complimentary $2,500 house reload applied!", "gold");
+          dom.bankrollDisplay.textContent = formatCurrency(state.bankroll);
+          setStatusBanner(t("msgBankruptReload"), "gold");
         }
 
+        // Automatically sweep and clear all cards from the table into the Discard Tray BEFORE next betting phase
+        await sleep(320);
+        await sweepAndClearTableCardsToDiscard();
+
+        // Unlock Betting phase for the next round on a clean table
         state.phase = "BETTING";
+        setStatusBanner(t("msgPlaceBet"), "gold");
+        setDealerSpeech(t("dealerSpeechIdle"));
         updateControlsAndBankrollUI();
       }
 
       /* =========================================================================
-       * 10. EVENT LISTENERS & DOWNLOAD HANDLER
+       * 14. EVENT LISTENERS & INITIALIZATION
        * ========================================================================= */
       dom.chipRackButtons.forEach(btn => {
         btn.addEventListener("click", () => {
@@ -1845,9 +2788,16 @@
       dom.btnDouble.addEventListener("click", handlePlayerDoubleDown);
       dom.btnSplit.addEventListener("click", handlePlayerSplitPairs);
 
+      // Language Switcher Toggle (TH <-> EN)
+      dom.btnLangToggle.addEventListener("click", () => {
+        currentLang = currentLang === "th" ? "en" : "th";
+        sound.playChipClink(220);
+        applyLanguageTranslations();
+      });
+
       dom.btnShuffleDeck.addEventListener("click", async () => {
         if (state.phase !== "BETTING") return;
-        await clearTableCardsToDiscard();
+        await sweepAndClearTableCardsToDiscard();
         await performRiffleShuffleSequence();
       });
 
@@ -1857,10 +2807,10 @@
         state.bankroll = 2500;
         dom.payoutDisplay.textContent = "$0";
         renderStackedBetChips();
-        await clearTableCardsToDiscard();
+        await sweepAndClearTableCardsToDiscard();
         sound.playChipClink(150);
         updateControlsAndBankrollUI();
-        setStatusBanner("Bankroll reset to $2,500 — Place your bet");
+        setStatusBanner(t("msgBankrollReset"), "gold");
       });
 
       dom.btnSoundToggle.addEventListener("click", () => {
@@ -1887,21 +2837,9 @@
         }
       });
 
-      // Built-in Download index.html Handler
-      dom.btnDownloadHtml.addEventListener("click", () => {
-        const blob = new Blob([CLEAN_HTML_SOURCE], { type: "text/html;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "index.html";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(url), 1500);
-      });
-
-      // Initialize the table with an authentic cryptographic riffle shuffle on load
+      // Initialize table on load
       window.addEventListener("load", async () => {
+        applyLanguageTranslations();
         updateControlsAndBankrollUI();
         await performRiffleShuffleSequence();
       });
